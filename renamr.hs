@@ -5,3 +5,31 @@
 -- this stuff is worth it, you can buy me a scotch whisky in return
 -- Marco 'don' Kaulea
 -- ----------------------------------------------------------------------------
+import System.Environment
+import System.FilePath
+import System.IO
+import System.Console.GetOpt
+import System.Exit
+
+data Path = Path { pathToFile :: String
+                 , fileName :: String
+                 , fileExtension :: String
+                 } deriving (Show)
+
+main :: IO()
+main = do
+    args <- getArgs
+    if args /= []
+    then do
+        let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
+        print $ parsePaths nonOpts
+    else print "usage renamr filename [..]"
+
+parsePath :: String -> Path
+parsePath input = Path { pathToFile = takeBaseName input
+                       , fileName = dropExtension $ takeFileName input
+                       , fileExtension = takeExtension input
+                       }
+
+parsePaths :: [String] -> [Path]
+parsePaths input = map parsePath $ input

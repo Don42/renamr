@@ -35,3 +35,13 @@ parsePath input = Path { pathToFile = takeDirectory input
 
 parsePaths :: [String] -> [Path]
 parsePaths input = map parsePath $ input
+<<<<<<< HEAD
+
+findNewFileNames :: [Path] -> [(Path, Path)]
+findNewFileNames input = map regexFileName $ input
+
+regexFileName :: Path -> (Path, Path)
+regexFileName old = (old, new)
+                    where new = old
+=======
+>>>>>>> parent of 1075058... Implements function to contain the regex parsing

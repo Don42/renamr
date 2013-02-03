@@ -28,8 +28,8 @@ main = do
         exitWith $ ExitFailure 1
 
 parsePath :: String -> Path
-parsePath input = Path { pathToFile = takeBaseName input
-                       , fileName = dropExtension $ takeFileName input
+parsePath input = Path { pathToFile = takeDirectory input
+                       , fileName = takeBaseName input
                        , fileExtension = takeExtension input
                        }
 

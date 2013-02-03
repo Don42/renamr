@@ -23,7 +23,9 @@ main = do
     then do
         let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
         print $ parsePaths nonOpts
-    else print "usage renamr filename [..]"
+    else do
+        print "usage: renamr filename [..]"
+        exitWith $ ExitFailure 1
 
 parsePath :: String -> Path
 parsePath input = Path { pathToFile = takeBaseName input

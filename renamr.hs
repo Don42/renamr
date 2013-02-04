@@ -11,10 +11,14 @@ import System.IO
 import System.Console.GetOpt
 import System.Exit
 
+import Text.Regex.Posix
+
 data Path = Path { pathToFile :: String
                  , fileName :: String
                  , fileExtension :: String
                  } deriving (Show)
+
+regex1 = "[S|s][0-9]{2}[E|e][0-9]{2}"
 
 main :: IO()
 main = do
@@ -22,7 +26,8 @@ main = do
     if args /= []
     then do
         let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
-        print $ parsePaths nonOpts
+        let renameOps = findNewFileNames $ parsePaths nonOpts
+        mapM_ print renameOps
     else do
         print "usage: renamr filename [..]"
         exitWith $ ExitFailure 1
@@ -35,13 +40,17 @@ parsePath input = Path { pathToFile = takeDirectory input
 
 parsePaths :: [String] -> [Path]
 parsePaths input = map parsePath $ input
-<<<<<<< HEAD
 
 findNewFileNames :: [Path] -> [(Path, Path)]
-findNewFileNames input = map regexFileName $ input
+findNewFileNames input = map regexPath $ input
 
-regexFileName :: Path -> (Path, Path)
-regexFileName old = (old, new)
-                    where new = old
-=======
->>>>>>> parent of 1075058... Implements function to contain the regex parsing
+regexPath :: Path -> (Path, Path)
+regexPath old = (old, new)
+                where
+                    new = Path { pathToFile = pathToFile old
+                                , fileName = regexFileName $ fileName old
+                                , fileExtension = fileExtension old
+                                }
+
+regexFileName :: String -> String
+regexFileName old = old =~ regex1

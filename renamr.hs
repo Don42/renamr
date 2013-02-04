@@ -19,6 +19,8 @@ data Path = Path { pathToFile :: String
                  } deriving (Show)
 
 regex1 = "[S|s][0-9]{2}[E|e][0-9]{2}"
+regex2 = "[S|s][0-9]{2}[0-9]{2}"
+
 
 main :: IO()
 main = do
@@ -53,4 +55,8 @@ regexPath old = (old, new)
                                 }
 
 regexFileName :: String -> String
-regexFileName old = old =~ regex1
+regexFileName old
+    | old =~ regex1 = old =~ regex1
+    | old =~ regex2 = old =~ regex2
+    | otherwise     = old
+

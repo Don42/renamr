@@ -11,12 +11,20 @@ import System.IO
 import System.Console.GetOpt
 import System.Exit
 
+import Data.Char
+
 import Text.Regex.Posix
 
 data Path = Path { pathToFile :: String
                  , fileName :: String
                  , fileExtension :: String
-                 } deriving (Show)
+                 }
+
+instance Show Path where
+    show path = combine (pathToFile path) $ name ++ ext
+                where
+                    name = fileName path
+                    ext = fileExtension path
 
 regex1 = "[S|s][0-9]{2}[E|e|-|_][0-9]{2}"
 regex2 = "[0-9]{4}[^p]"
@@ -47,18 +55,31 @@ parsePaths input = map parsePath $ input
 findNewFileNames :: [Path] -> [(Path, Path)]
 findNewFileNames input = map regexPath $ input
 
+
+
 regexPath :: Path -> (Path, Path)
 regexPath old = (old, new)
                 where
                     new = Path { pathToFile = pathToFile old
-                                , fileName = regexFileName $ fileName old
+                                , fileName = name
                                 , fileExtension = fileExtension old
                                 }
+                    name = buildIdentifier $ regexFileName $ fileName old
+                    buildIdentifier numbers
+                        | length numbers == 4 = "S" ++
+                                                (take 2 numbers)
+                                                ++ "E" ++
+                                                (drop 2 numbers)
+                        | length numbers == 3 = "S0" ++
+                                                (take 1 numbers)
+                                                ++ "E" ++
+                                                (drop 1 numbers)
+                        | otherwise = numbers
 
 regexFileName :: String -> String
 regexFileName old
-    | old =~ regex1 = old =~ regex1
-    | old =~ regex2 = old =~ regex2
-    | old =~ regex3 = old =~ regex3
+    | old =~ regex1 = filter isDigit $ old =~ regex1
+    | old =~ regex2 = filter isDigit $ old =~ regex2
+    | old =~ regex3 = filter isDigit $ old =~ regex3
     | otherwise     = old
 

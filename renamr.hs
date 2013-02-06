@@ -61,10 +61,14 @@ regexPath :: Path -> (Path, Path)
 regexPath old = (old, new)
                 where
                     new = Path { pathToFile = pathToFile old
-                                , fileName = name
+                                , fileName = seriesName ++ " " ++ identifier
                                 , fileExtension = fileExtension old
                                 }
-                    name = buildIdentifier $ regexFileName $ fileName old
+                    seriesName
+                        | length reverseSplitPath >= 2 = (reverseSplitPath) !! 1
+                        | otherwise = takeWhile (/='.') $ fileName old
+                    reverseSplitPath = reverse $ splitDirectories $ pathToFile old
+                    identifier = buildIdentifier $ regexFileName $ fileName old
                     buildIdentifier numbers
                         | length numbers == 4 = "S" ++
                                                 (take 2 numbers)

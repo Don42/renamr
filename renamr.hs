@@ -5,6 +5,8 @@
 -- this stuff is worth it, you can buy me a scotch whisky in return
 -- Marco 'don' Kaulea
 -- ----------------------------------------------------------------------------
+module Main(main) where
+
 import System.Environment
 import System.FilePath
 import System.IO
@@ -15,6 +17,7 @@ import System.Exit
 import Data.Char
 
 import Text.Regex.Posix
+
 
 data Path = Path { pathToFile :: String
                  , fileName :: String
@@ -32,27 +35,29 @@ regex2 = "[0-9]{4}[^p]"
 regex3 = "[0-9]{3}[^p]"
 
 
+-- |Reads file names as arguments, parses and outputs them to use in awk/mv
 main :: IO()
 main = do
     args <- getArgs
     absPath <- getCurrentDirectory
-    if args /= []
-    then do
-        let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
-        let absPaths = map (combine absPath) nonOpts
-        let renameOps = findNewFileNames $ parsePaths absPaths
-        let renameArgs = map (buildPathPairs) renameOps
-        mapM_ putStrLn renameArgs
-    else do
-        print "usage: renamr filename [..]"
-        exitWith $ ExitFailure 1
+    if args /= [] 
+        then do
+            let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
+            let absPaths = map (combine absPath) nonOpts
+            let renameOps = findNewFileNames $ parsePaths absPaths
+            mapM_ putStrLn $ map (buildPathPairs) renameOps
+        else do
+            print "usage: renamr filename [..]"
+            exitWith $ ExitFailure 1
 
+-- |Parses one String to one Path Type
 parsePath :: String -> Path
 parsePath input = Path { pathToFile = takeDirectory input
                        , fileName = takeBaseName input
                        , fileExtension = takeExtension input
                        }
 
+											 
 parsePaths :: [String] -> [Path]
 parsePaths input = map parsePath $ input
 
@@ -81,7 +86,7 @@ regexPath old = (old, new)
                                                 ++ "E" ++
                                                 (drop 1 numbers)
                         | otherwise = numbers
-
+	
 regexFileName :: String -> String
 regexFileName old
     | old =~ regex1 = filter isDigit $ old =~ regex1

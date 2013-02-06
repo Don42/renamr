@@ -39,8 +39,10 @@ main = do
     if args /= []
     then do
         let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
-        let renameOps = findNewFileNames $ parsePaths $ map (combine absPath) nonOpts
-        mapM_ print renameOps
+        let absPaths = map (combine absPath) nonOpts
+        let renameOps = findNewFileNames $ parsePaths absPaths
+        let renameArgs = map (buildPathPairs) renameOps
+        mapM_ putStrLn renameArgs
     else do
         print "usage: renamr filename [..]"
         exitWith $ ExitFailure 1
@@ -87,3 +89,5 @@ regexFileName old
     | old =~ regex3 = filter isDigit $ old =~ regex3
     | otherwise     = old
 
+buildPathPairs :: (Path, Path) -> String
+buildPathPairs (old, new) = "\"" ++ (show old) ++ "\"|\"" ++ (show new) ++ "\""

@@ -9,6 +9,7 @@ import System.Environment
 import System.FilePath
 import System.IO
 import System.Console.GetOpt
+import System.Directory(getCurrentDirectory)
 import System.Exit
 
 import Data.Char
@@ -34,10 +35,11 @@ regex3 = "[0-9]{3}[^p]"
 main :: IO()
 main = do
     args <- getArgs
+    absPath <- getCurrentDirectory
     if args /= []
     then do
         let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
-        let renameOps = findNewFileNames $ parsePaths nonOpts
+        let renameOps = findNewFileNames $ parsePaths $ map (combine absPath) nonOpts
         mapM_ print renameOps
     else do
         print "usage: renamr filename [..]"
@@ -54,8 +56,6 @@ parsePaths input = map parsePath $ input
 
 findNewFileNames :: [Path] -> [(Path, Path)]
 findNewFileNames input = map regexPath $ input
-
-
 
 regexPath :: Path -> (Path, Path)
 regexPath old = (old, new)

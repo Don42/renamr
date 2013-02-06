@@ -45,7 +45,7 @@ main = do
             let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
             let absPaths = map (combine absPath) nonOpts
             let renameOps = findNewFileNames $ parsePaths absPaths
-            mapM_ putStrLn $ map (buildPathPairs) renameOps
+            mapM_ (putStrLn . buildPathPairs) renameOps
         else do
             print "usage: renamr filename [..]"
             exitWith $ ExitFailure 1
@@ -57,12 +57,12 @@ parsePath input = Path { pathToFile = takeDirectory input
                        , fileExtension = takeExtension input
                        }
 
-											 
+
 parsePaths :: [String] -> [Path]
-parsePaths input = map parsePath $ input
+parsePaths = map parsePath
 
 findNewFileNames :: [Path] -> [(Path, Path)]
-findNewFileNames input = map regexPath $ input
+findNewFileNames = map regexPath
 
 regexPath :: Path -> (Path, Path)
 regexPath old = (old, new)
@@ -72,19 +72,19 @@ regexPath old = (old, new)
                                 , fileExtension = fileExtension old
                                 }
                     seriesName
-                        | length reverseSplitPath >= 2 = (reverseSplitPath) !! 1
+                        | length reverseSplitPath >= 2 = reverseSplitPath !! 1
                         | otherwise = takeWhile (/='.') $ fileName old
                     reverseSplitPath = reverse $ splitDirectories $ pathToFile old
                     identifier = buildIdentifier $ regexFileName $ fileName old
                     buildIdentifier numbers
                         | length numbers == 4 = "S" ++
-                                                (take 2 numbers)
+                                                take 2 numbers
                                                 ++ "E" ++
-                                                (drop 2 numbers)
+                                                drop 2 numbers
                         | length numbers == 3 = "S0" ++
-                                                (take 1 numbers)
+                                                take 1 numbers
                                                 ++ "E" ++
-                                                (drop 1 numbers)
+                                                drop 1 numbers
                         | otherwise = numbers
 	
 regexFileName :: String -> String
@@ -95,4 +95,4 @@ regexFileName old
     | otherwise     = old
 
 buildPathPairs :: (Path, Path) -> String
-buildPathPairs (old, new) = "\"" ++ (show old) ++ "\"|\"" ++ (show new) ++ "\""
+buildPathPairs (old, new) = "\"" ++ show old ++ "\"|\"" ++ show new ++ "\""

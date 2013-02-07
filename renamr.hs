@@ -17,12 +17,21 @@ import System.Exit
 import Data.Char
 
 import Text.Regex.Posix
+import Text.CSV.ByteString
+import Text.HTML.TagSoup
+import Text.Printf
 
+import Network.HTTP
 
 data Path = Path { pathToFile :: String
                  , fileName :: String
                  , fileExtension :: String
                  }
+
+data Episode = Episode { name :: String
+                       , season :: Int
+                       , episode :: Int
+                       }
 
 instance Show Path where
     show path = combine (pathToFile path) $ name ++ ext
@@ -40,14 +49,17 @@ main :: IO()
 main = do
     args <- getArgs
     absPath <- getCurrentDirectory
-    if args /= [] 
+    if args /= []
         then do
             -- Parse Commandline Options
             let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
             -- Add current path to relative paths used to make them absolute
             let absPaths = map (combine absPath) nonOpts
             -- Do the actual parsing
-            let renameOps = findNewFileNames $ parsePaths absPaths
+            let episodes = findNewFileNames $ parsePaths absPaths
+
+            -- Start getting the episode data from epguides
+            let renameOps = map getEpisodeNames episodes
             -- Output all filename pairs
             mapM_ (putStrLn . buildPathPairs) renameOps
         else do
@@ -61,37 +73,60 @@ parsePath input = Path { pathToFile = takeDirectory input
                        , fileExtension = takeExtension input
                        }
 
+openURL x = getResponseBody =<< simpleHTTP (getRequest x)
+
+getEpisodeNames :: (Path, Episode) -> (Path, Path)
+getEpisodeNames (old_in, new_in) = (old_out, new_out)
+                    where
+                        old_out = old_in
+                        new_out = Path { pathToFile = pathToFile old_in
+                                       , fileName = getFullName new_in
+                                       , fileExtension = fileExtension old_in
+                                       }
+
+getFullName :: Episode -> String
+getFullName ep = series ++ seasonNo ++ episodeNo -- ++ epName
+            where
+                series = name ep
+                seasonNo = printf " S%02d" $ season ep
+                episodeNo = printf "E%02d" $ episode ep
+--                epName = printf " - %s" $ getEpisodeName ep
+
+
+--getEpisodeName :: Episode -> String
+--getEpisodeName ep = do
+--                src <- openURL . printf "http://epguides.com/%s" $ name ep
+--                return "EPNAME"
+
+
+
 -- | Parse a list of strings to a list of paths
 parsePaths :: [String] -> [Path]
 parsePaths = map parsePath
 
 -- | Use regexPath on all elements of a list of Paths
-findNewFileNames :: [Path] -> [(Path, Path)]
+findNewFileNames :: [Path] -> [(Path, Episode)]
 findNewFileNames = map regexPath
 
 -- | Take one Path type and return a pair containing the old Path and the created new Path
-regexPath :: Path -> (Path, Path)
+regexPath :: Path -> (Path, Episode)
 regexPath old = (old, new)
                 where
-                    new = Path { pathToFile = pathToFile old
-                                , fileName = seriesName ++ " " ++ identifier
-                                , fileExtension = fileExtension old
-                                }
+                    new = Episode { name = seriesName
+                                  , season   = fst identifier
+                                  , episode  = snd identifier
+                                  }
                     seriesName
                         | length reverseSplitPath >= 2 = reverseSplitPath !! 1
                         | otherwise = takeWhile (/='.') $ fileName old
-                    reverseSplitPath = reverse $ splitDirectories $ pathToFile old
-                    identifier = buildIdentifier $ regexFileName $ fileName old
-                    buildIdentifier numbers
-                        | length numbers == 4 = "S" ++
-                                                take 2 numbers
-                                                ++ "E" ++
-                                                drop 2 numbers
-                        | length numbers == 3 = "S0" ++
-                                                take 1 numbers
-                                                ++ "E" ++
-                                                drop 1 numbers
-                        | otherwise = numbers
+                    reverseSplitPath = reverse . splitDirectories $ pathToFile old
+                    identifier = readIdentifier $ regexFileName $ fileName old
+                    readIdentifier numbers
+                        | length numbers == 4 = (read $ take 2 numbers,
+                                                read $ drop 2 numbers)
+                        | length numbers == 3 = (read $ take 1 numbers,
+                                                read $ drop 1 numbers)
+                        | otherwise = (0, 0)
 
 -- | Check which regex fits best and use that result
 regexFileName :: String -> String

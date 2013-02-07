@@ -42,28 +42,34 @@ main = do
     absPath <- getCurrentDirectory
     if args /= [] 
         then do
+            -- Parse Commandline Options
             let ( flags, nonOpts, msgs ) = getOpt RequireOrder [] args
+            -- Add current path to relative paths used to make them absolute
             let absPaths = map (combine absPath) nonOpts
+            -- Do the actual parsing
             let renameOps = findNewFileNames $ parsePaths absPaths
+            -- Output all filename pairs
             mapM_ (putStrLn . buildPathPairs) renameOps
         else do
-            print "usage: renamr filename [..]"
+            print "usage: renamr filename [..] \n Files should be already sorted into folders first by series then by season"
             exitWith $ ExitFailure 1
 
--- |Parses one String to one Path Type
+-- | Parses one String to one Path Type
 parsePath :: String -> Path
 parsePath input = Path { pathToFile = takeDirectory input
                        , fileName = takeBaseName input
                        , fileExtension = takeExtension input
                        }
 
-
+-- | Parse a list of strings to a list of paths
 parsePaths :: [String] -> [Path]
 parsePaths = map parsePath
 
+-- | Use regexPath on all elements of a list of Paths
 findNewFileNames :: [Path] -> [(Path, Path)]
 findNewFileNames = map regexPath
 
+-- | Take one Path type and return a pair containing the old Path and the created new Path
 regexPath :: Path -> (Path, Path)
 regexPath old = (old, new)
                 where
@@ -86,7 +92,8 @@ regexPath old = (old, new)
                                                 ++ "E" ++
                                                 drop 1 numbers
                         | otherwise = numbers
-	
+
+-- | Check which regex fits best and use that result
 regexFileName :: String -> String
 regexFileName old
     | old =~ regex1 = filter isDigit $ old =~ regex1
@@ -94,5 +101,6 @@ regexFileName old
     | old =~ regex3 = filter isDigit $ old =~ regex3
     | otherwise     = old
 
+-- | Add the to filenames and paths together and format them to be read be awk
 buildPathPairs :: (Path, Path) -> String
 buildPathPairs (old, new) = "\"" ++ show old ++ "\"|\"" ++ show new ++ "\""

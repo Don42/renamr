@@ -17,11 +17,7 @@ import System.Exit
 import Data.Char
 
 import Text.Regex.Posix
-import Text.CSV.ByteString
-import Text.HTML.TagSoup
 import Text.Printf
-
-import Network.HTTP
 
 data Path = Path { pathToFile :: String
                  , fileName :: String
@@ -73,8 +69,6 @@ parsePath input = Path { pathToFile = takeDirectory input
                        , fileExtension = takeExtension input
                        }
 
-openURL x = getResponseBody =<< simpleHTTP (getRequest x)
-
 getEpisodeNames :: (Path, Episode) -> (Path, Path)
 getEpisodeNames (old_in, new_in) = (old_out, new_out)
                     where
@@ -85,19 +79,11 @@ getEpisodeNames (old_in, new_in) = (old_out, new_out)
                                        }
 
 getFullName :: Episode -> String
-getFullName ep = series ++ seasonNo ++ episodeNo -- ++ epName
+getFullName ep = series ++ seasonNo ++ episodeNo
             where
                 series = name ep
                 seasonNo = printf " S%02d" $ season ep
                 episodeNo = printf "E%02d" $ episode ep
---                epName = printf " - %s" $ getEpisodeName ep
-
-
---getEpisodeName :: Episode -> String
---getEpisodeName ep = do
---                src <- openURL . printf "http://epguides.com/%s" $ name ep
---                return "EPNAME"
-
 
 
 -- | Parse a list of strings to a list of paths

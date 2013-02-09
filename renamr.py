@@ -10,7 +10,7 @@
 import re
 import sys
 import unicodecsv
-from os.path import exists, abspath, dirname, basename
+from os.path import exists, abspath, dirname, basename, join
 from urllib2 import urlopen
 from BeautifulSoup import BeautifulSoup
 from cStringIO import StringIO
@@ -49,14 +49,14 @@ def getEpisodeName(seriesName, ident):
         con.close()
         csvCon = urlopen(link)
         soup = BeautifulSoup(csvCon.read())
-        csvText = StringIO(soup.find('pre').contents[0].strip())
-        cache[shortName] = csvText
+        cache[shortName] = soup.find('pre').contents[0].strip()
 
-    reader = unicodecsv.reader(cache[shortName],  delimiter=',', encoding='utf-8')
-    reader.next()
+    csvText = StringIO(cache[shortName])
+    reader = unicodecsv.reader(csvText,  delimiter=',', encoding='utf-8')
     for line in reader:
-        if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
-            return line[5]
+        if not line[0] == u'number':
+            if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
+                return line[5]
     return ""
 
 
@@ -66,7 +66,9 @@ def main(argv):
         seriesName = getSeriesName(file)
         ident = getIdentifier(file)
         epName = getEpisodeName(seriesName, ident)
-        print "%s %s - %s" % (seriesName, buildIdentifer(ident), epName)
+        newName = "%s %s - %s" % (seriesName, buildIdentifer(ident), epName)
+        newPath = join(dirname(file), newName)
+        print "\"%s\"|\"%s\"" % (file, newPath)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

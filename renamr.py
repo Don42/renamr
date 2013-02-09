@@ -10,10 +10,12 @@
 import re
 import sys
 import unicodecsv
-from os.path import exists, abspath, dirname, basename, join
+from os.path import exists, abspath, dirname, basename, join, splitext
+from os import rename
 from urllib2 import urlopen
 from BeautifulSoup import BeautifulSoup
 from cStringIO import StringIO
+
 regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})", "[S|s](\d{2})(\d{2})[^p]",
            "(\d{2})(\d{2})",  "(\d{1})(\d{2})[^p]"]
 
@@ -71,8 +73,15 @@ def main(argv):
         ident = getIdentifier(file)
         epName = getEpisodeName(seriesName, ident)
         newName = "%s %s - %s" % (seriesName, buildIdentifer(ident), epName)
-        newPath = join(dirname(file), newName)
+        clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "", newName + splitext(file)[1])
+        newPath = join(dirname(file), clean)
+
+        if exists(newPath):
+            print "File %s already exists" % newPath
+        else:
+            rename(file, newPath)
         print "\"%s\"|\"%s\"" % (file, newPath)
+        print "\n"
 
 if __name__ == "__main__":
     main(sys.argv[1:])

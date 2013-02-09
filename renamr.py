@@ -41,6 +41,15 @@ def buildIdentifer(identifier):
 
 def getEpisodeName(seriesName, ident):
     shortName = seriesName.replace(" ", "")
+    reader = unicodecsv.reader(getCsv(shortName),  delimiter=',', encoding='utf-8')
+    for line in reader:
+        if not line[0] == u'number':
+            if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
+                return line[5]
+    return ""
+
+
+def getCsv(shortName):
     url = "http://epguides.com/common/exportToCSV.asp"
     if shortName not in cache:
         con = urlopen("http://epguides.com/%s" % shortName)
@@ -52,12 +61,7 @@ def getEpisodeName(seriesName, ident):
         cache[shortName] = soup.find('pre').contents[0].strip()
 
     csvText = StringIO(cache[shortName])
-    reader = unicodecsv.reader(csvText,  delimiter=',', encoding='utf-8')
-    for line in reader:
-        if not line[0] == u'number':
-            if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
-                return line[5]
-    return ""
+    return csvText
 
 
 def main(argv):

@@ -10,7 +10,8 @@
 import re
 import sys
 import unicodecsv
-from os.path import exists, abspath, dirname, basename, join, splitext
+from os.path import exists, abspath, dirname, basename, join, splitext,\
+    normpath, realpath
 from os import rename
 from urllib2 import urlopen
 from BeautifulSoup import BeautifulSoup
@@ -66,9 +67,15 @@ def getCsv(shortName):
     return csvText
 
 
+def getPartialPath(path):
+    return join(basename(dirname(dirname(path))), basename(dirname(path)),
+                basename(path))
+
+
 def main(argv):
     files = filter(exists, argv)
-    for file in files:
+    absFiles = map(realpath, map(normpath, files))
+    for file in absFiles:
         seriesName = getSeriesName(file)
         ident = getIdentifier(file)
         epName = getEpisodeName(seriesName, ident)
@@ -80,7 +87,7 @@ def main(argv):
             print "File %s already exists" % newPath
         else:
             rename(file, newPath)
-        print "\"%s\"|\"%s\"" % (file, newPath)
+        print "\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath))
         print "\n"
 
 if __name__ == "__main__":

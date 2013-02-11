@@ -11,9 +11,9 @@ import re
 import sys
 import unicodecsv
 from os.path import exists, abspath, dirname, basename, join, splitext,\
-    normpath, realpath
+    normpath, realpath, relpath
 from os import rename
-from urllib2 import urlopen
+from urllib2 import urlopen, URLError, HTTPError
 from BeautifulSoup import BeautifulSoup
 from cStringIO import StringIO
 
@@ -55,11 +55,29 @@ def getEpisodeName(seriesName, ident):
 def getCsv(shortName):
     url = "http://epguides.com/common/exportToCSV.asp"
     if shortName not in cache:
-        con = urlopen("http://epguides.com/%s" % shortName)
+        try:
+            con = urlopen("http://epguides.com/%s" % shortName)
+        except HTTPError, e:
+            print 'The server couldn\'t fulfill the request.'
+            print 'Error code: ', e.code
+            sys.exit(1)
+        except URLError, e:
+            print 'We failed to reach a server.'
+            print 'Reason: ', e.reason
+            sys.exit(1)
         soup = BeautifulSoup(con.read())
         link = soup.find('a', href=re.compile(url)).get("href")
         con.close()
-        csvCon = urlopen(link)
+        try:
+            csvCon = urlopen(link)
+        except HTTPError, e:
+            print 'The server couldn\'t fulfill the request.'
+            print 'Error code: ', e.code
+            sys.exit(1)
+        except URLError, e:
+            print 'We failed to reach a server.'
+            print 'Reason: ', e.reason
+            sys.exit(1)
         soup = BeautifulSoup(csvCon.read())
         cache[shortName] = soup.find('pre').contents[0].strip()
 
@@ -84,11 +102,10 @@ def main(argv):
         newPath = join(dirname(file), clean)
 
         if exists(newPath):
-            print "File %s already exists" % newPath
+            print "File %s already exists" % relpath(newPath)
         else:
             rename(file, newPath)
         print "\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath))
-        print "\n"
 
 if __name__ == "__main__":
     main(sys.argv[1:])

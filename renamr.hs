@@ -60,13 +60,9 @@ main = do
             -- Do the actual parsing
             let episodes = findNewFileNames $ parsePaths absPaths
 
-            case parseURI "http://epguides.com/ArcticAir" of
-                Nothing -> putStrLn "Invalid search"
-                Just uri -> do
-                    body <- get uri
-                    let stuff = body
-                    print stuff
+            stuff <- getSeriesSite "ArcticAir"
 
+            print stuff
 
             -- Start getting the episode data from epguides
             let renameOps = map getEpisodeNames episodes
@@ -76,13 +72,12 @@ main = do
             print "usage: renamr filename [..] \n Files should be already sorted into folders first by series then by season"
             exitWith $ ExitFailure 1
 
-get :: URI -> IO L.ByteString
-get uri = do
-  let req = Request uri GET [] L.empty
-  resp <- browse $ do
-    setAllowRedirects True -- handle HTTP redirects
-    request req
-  return $ rspBody $ snd resp
+getSeriesSite :: String -> IO (String)
+getSeriesSite seriesName = do
+        (_, rsp) <- Network.Browser.browse $ do
+                setAllowRedirects True -- handle HTTP redirects
+                request $ getRequest ("http://epguides.com/" ++ seriesName)
+        return (dropWhile (/='<') $ rspBody rsp)
 
 -- | Parses one String to one Path Type
 parsePath :: String -> Path

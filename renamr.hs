@@ -19,6 +19,12 @@ import Data.Char
 import Text.Regex.Posix
 import Text.Printf
 
+import qualified Data.ByteString.Lazy as L
+
+import Network.URI
+import Network.HTTP
+import Network.Browser
+
 data Path = Path { pathToFile :: String
                  , fileName :: String
                  , fileExtension :: String
@@ -54,6 +60,14 @@ main = do
             -- Do the actual parsing
             let episodes = findNewFileNames $ parsePaths absPaths
 
+            case parseURI "http://epguides.com/ArcticAir" of
+                Nothing -> putStrLn "Invalid search"
+                Just uri -> do
+                    body <- get uri
+                    let stuff = body
+                    print stuff
+
+
             -- Start getting the episode data from epguides
             let renameOps = map getEpisodeNames episodes
             -- Output all filename pairs
@@ -61,6 +75,14 @@ main = do
         else do
             print "usage: renamr filename [..] \n Files should be already sorted into folders first by series then by season"
             exitWith $ ExitFailure 1
+
+get :: URI -> IO L.ByteString
+get uri = do
+  let req = Request uri GET [] L.empty
+  resp <- browse $ do
+    setAllowRedirects True -- handle HTTP redirects
+    request req
+  return $ rspBody $ snd resp
 
 -- | Parses one String to one Path Type
 parsePath :: String -> Path

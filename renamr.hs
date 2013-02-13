@@ -75,9 +75,10 @@ main = do
 getSeriesSite :: String -> IO (String)
 getSeriesSite seriesName = do
         (_, rsp) <- Network.Browser.browse $ do
+                setOutHandler $ const (return ())
                 setAllowRedirects True -- handle HTTP redirects
                 request $ getRequest ("http://epguides.com/" ++ seriesName)
-        return (dropWhile (/='<') $ rspBody rsp)
+        return (rspBody rsp)
 
 -- | Parses one String to one Path Type
 parsePath :: String -> Path

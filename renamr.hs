@@ -79,7 +79,12 @@ getSeriesSite seriesName = do
                 setOutHandler $ const (return ())
                 setAllowRedirects True -- handle HTTP redirects
                 request $ getRequest ("http://epguides.com/" ++ seriesName)
-        return $ parseTags (fromString (rspBody rsp))
+        let tags =  parseTags (fromString (rspBody rsp))
+        let navbar = takeWhile (~/= "</div>") $
+                 dropWhile (~/= "<div id=\"topnavbar\"") tags
+        let link = takeWhile (~/= "</a>") $
+                dropWhile (~/= "<a onclick") navbar
+        return link
 
 -- | Parses one String to one Path Type
 parsePath :: String -> Path

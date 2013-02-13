@@ -18,7 +18,8 @@ import Data.Char
 
 import Text.Regex.Posix
 import Text.Printf
-
+import Text.HTML.TagSoup
+import Text.StringLike
 import qualified Data.ByteString.Lazy as L
 
 import Network.URI
@@ -72,13 +73,13 @@ main = do
             print "usage: renamr filename [..] \n Files should be already sorted into folders first by series then by season"
             exitWith $ ExitFailure 1
 
-getSeriesSite :: String -> IO (String)
+getSeriesSite :: String -> IO [Tag String]
 getSeriesSite seriesName = do
         (_, rsp) <- Network.Browser.browse $ do
                 setOutHandler $ const (return ())
                 setAllowRedirects True -- handle HTTP redirects
                 request $ getRequest ("http://epguides.com/" ++ seriesName)
-        return (rspBody rsp)
+        return $ parseTags (fromString (rspBody rsp))
 
 -- | Parses one String to one Path Type
 parsePath :: String -> Path

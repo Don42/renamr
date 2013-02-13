@@ -60,9 +60,9 @@ main = do
             -- Do the actual parsing
             let episodes = findNewFileNames $ parsePaths absPaths
 
-            stuff <- getSeriesSite "ArcticAir"
+            stuff <- mapM (getSeriesSite . getShortName . snd) episodes
 
-            print stuff
+            mapM_ putStrLn stuff
             -- Start getting the episode data from epguides
             let renameOps = map getEpisodeNames episodes
             -- Output all filename pairs
@@ -81,6 +81,10 @@ getSeriesSite seriesName = do
         let doc = readString [withParseHTML yes, withWarnings no] body
         links <- runX $ doc //> hasName "a" >>> getAttrValue "href"
         return $ head $ filter (=~ "http://epguides.com/common/export.*")  links
+
+getShortName :: Episode -> String
+getShortName ep = filter (isAlphaNum) $ name ep
+
 
 -- | Parses one String to one Path Type
 parsePath :: String -> Path

@@ -18,8 +18,7 @@ import Data.Char
 
 import Text.Regex.Posix
 import Text.Printf
-import Text.HTML.TagSoup
-import Text.StringLike
+import Text.XML.HXT.Core
 import qualified Data.ByteString.Lazy as L
 
 import Network.URI
@@ -64,7 +63,6 @@ main = do
             stuff <- getSeriesSite "ArcticAir"
 
             print stuff
-
             -- Start getting the episode data from epguides
             let renameOps = map getEpisodeNames episodes
             -- Output all filename pairs
@@ -73,18 +71,16 @@ main = do
             print "usage: renamr filename [..] \n Files should be already sorted into folders first by series then by season"
             exitWith $ ExitFailure 1
 
-getSeriesSite :: String -> IO [Tag String]
+getSeriesSite :: String -> IO String
 getSeriesSite seriesName = do
         (_, rsp) <- Network.Browser.browse $ do
                 setOutHandler $ const (return ())
                 setAllowRedirects True -- handle HTTP redirects
                 request $ getRequest ("http://epguides.com/" ++ seriesName)
-        let tags =  parseTags (fromString (rspBody rsp))
-        let navbar = takeWhile (~/= "</div>") $
-                 dropWhile (~/= "<div id=\"topnavbar\"") tags
-        let link = takeWhile (~/= "</a>") $
-                dropWhile (~/= "<a onclick") navbar
-        return link
+        let body =  (rspBody rsp)
+        let doc = readString [withParseHTML yes, withWarnings no] body
+        links <- runX $ doc //> hasName "a" >>> getAttrValue "href"
+        return $ head $ filter (=~ "http://epguides.com/common/export.*")  links
 
 -- | Parses one String to one Path Type
 parsePath :: String -> Path

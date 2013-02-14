@@ -19,7 +19,6 @@ import Data.Char
 import Text.Regex.Posix
 import Text.Printf
 import Text.XML.HXT.Core
-import qualified Data.ByteString.Lazy as L
 
 import Network.URI
 import Network.HTTP
@@ -71,7 +70,7 @@ main = do
             print "usage: renamr filename [..] \n Files should be already sorted into folders first by series then by season"
             exitWith $ ExitFailure 1
 
---getSeriesSite :: String -> IO String
+getSeriesSite :: String -> IO String
 getSeriesSite seriesName = do
         body <- getPageBody ("http://epguides.com/" ++ seriesName)
         let doc = readString [withParseHTML yes, withWarnings no] body
@@ -80,12 +79,12 @@ getSeriesSite seriesName = do
             filter (=~ "http://epguides.com/common/export.*") links
         return csv
 
---getCSVFromPage :: [String] -> IO String
+getCSVFromPage :: [String] -> IO String
 getCSVFromPage links = do
         body <- getPageBody $ head links
         let doc = readString [withParseHTML yes, withWarnings no] body
         csv <- runX $ doc //> hasName "pre" >>> deep isText >>> deep getText
-        return $ dropWhile isSpace  $ head csv
+        return $ dropWhile isSpace $ head csv
 
 getPageBody :: String -> IO String
 getPageBody url = do

@@ -71,13 +71,21 @@ main = do
             print "usage: renamr filename [..] \n Files should be already sorted into folders first by series then by season"
             exitWith $ ExitFailure 1
 
-getSeriesSite :: String -> IO String
+--getSeriesSite :: String -> IO String
 getSeriesSite seriesName = do
         body <- getPageBody ("http://epguides.com/" ++ seriesName)
         let doc = readString [withParseHTML yes, withWarnings no] body
         links <- runX $ doc //> hasName "a" >>> getAttrValue "href"
-        return $ head $ filter (=~ "http://epguides.com/common/export.*")  links
+        csv <- getCSVFromPage $
+            filter (=~ "http://epguides.com/common/export.*") links
+        return csv
 
+--getCSVFromPage :: [String] -> IO String
+getCSVFromPage links = do
+        body <- getPageBody $ head links
+        let doc = readString [withParseHTML yes, withWarnings no] body
+        csv <- runX $ doc //> hasName "pre" >>> deep isText >>> deep getText
+        return $ dropWhile isSpace  $ head csv
 
 getPageBody :: String -> IO String
 getPageBody url = do

@@ -62,7 +62,7 @@ main = do
 
             stuff <- mapM (getSeriesSite . getShortName . snd) episodes
 
-            mapM_ putStrLn stuff
+            mapM putStrLn stuff
             -- Start getting the episode data from epguides
             let renameOps = map getEpisodeNames episodes
             -- Output all filename pairs
@@ -73,14 +73,19 @@ main = do
 
 getSeriesSite :: String -> IO String
 getSeriesSite seriesName = do
-        (_, rsp) <- Network.Browser.browse $ do
-                setOutHandler $ const (return ())
-                setAllowRedirects True -- handle HTTP redirects
-                request $ getRequest ("http://epguides.com/" ++ seriesName)
-        let body =  (rspBody rsp)
+        body <- getPageBody ("http://epguides.com/" ++ seriesName)
         let doc = readString [withParseHTML yes, withWarnings no] body
         links <- runX $ doc //> hasName "a" >>> getAttrValue "href"
         return $ head $ filter (=~ "http://epguides.com/common/export.*")  links
+
+
+getPageBody :: String -> IO String
+getPageBody url = do
+        (_, rsp) <- Network.Browser.browse $ do
+                setOutHandler $ const (return ())
+                setAllowRedirects True -- handle HTTP redirects
+                request $ getRequest (url)
+        return $ rspBody rsp
 
 getShortName :: Episode -> String
 getShortName ep = filter (isAlphaNum) $ name ep

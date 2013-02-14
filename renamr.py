@@ -10,12 +10,14 @@
 import re
 import sys
 import unicodecsv
+import argparse
 from os.path import exists, abspath, dirname, basename, join, splitext,\
     normpath, realpath, relpath
 from os import rename
 from urllib2 import urlopen, URLError, HTTPError
 from BeautifulSoup import BeautifulSoup
 from cStringIO import StringIO
+
 
 regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})", "[S|s](\d{2})(\d{2})[^p]",
            "(\d{2})(\d{2})",  "(\d{1})(\d{2})[^p]"]
@@ -103,11 +105,22 @@ def getPartialPath(path):
 
 
 def main(argv):
-    files = filter(exists, argv)
+    parser = setupArgsParser()
+    args = parser.parse_args()
+
+    files = filter(exists, args.filenames)
     absFiles = map(realpath, map(normpath, files))
     for file in absFiles:
+        if args.verbose:
+            print "Operating on File %s" % file
         seriesName = getSeriesName(file)
-        ident = getIdentifier(file)
+        if args.verbose:
+            print "Found Seriesname %s" % seriesName
+        try:
+            ident = getIdentifier(file)
+        except Exception as e:
+            print "Error %s: No regex match on file %s" % (e, file)
+            continue
         epName = getEpisodeName(seriesName, ident)
         newName = "%s %s - %s" % (seriesName, buildIdentifer(ident), epName)
         clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "", newName + splitext(file)[1])
@@ -118,6 +131,22 @@ def main(argv):
         else:
             rename(file, newPath)
         print "\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath))
+
+
+def setupArgsParser():
+    parser = argparse.ArgumentParser(description="""Rename TV Series Episodes
+                                     Files have to be sorted into Folders, like
+                                     "SeriesName/Season/File.ext" only the
+                                     Seriesname is relevant. It is used to query
+                                     epguides.com. So it should be identical to the
+                                     name of the series on epguides. Spaces
+                                     in the foldername are ignored when quering
+                                     epguides.""")
+    parser.add_argument('filenames', nargs='+', help='paths to the episodes')
+    parser.add_argument("-v", "--verbose", help="increase output verbosity",
+                        action="store_true")
+    return parser
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

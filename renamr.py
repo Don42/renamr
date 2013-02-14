@@ -24,12 +24,14 @@ cache = {}
 
 
 def getSeriesName(fileName):
+    """Gets the seriesname from the directory structure"""
     absPath = abspath(fileName)
     seriesName = basename(dirname(dirname(absPath)))
     return seriesName
 
 
 def getIdentifier(fileName):
+    """Tries multiple regexes to get season and episodenumber"""
     for regex in regexes:
         match = re.search(regex, basename(fileName))
         if match is not None:
@@ -39,10 +41,12 @@ def getIdentifier(fileName):
 
 
 def buildIdentifer(identifier):
+    """Builds the episode identifier, consisting of season and episodenumber"""
     return "S%02dE%02d" % identifier
 
 
 def getEpisodeName(seriesName, ident):
+    """Gets the Episode name from epguides"""
     shortName = seriesName.replace(" ", "")
     reader = unicodecsv.reader(getCsv(shortName),  delimiter=',', encoding='utf-8')
     for line in reader:
@@ -53,6 +57,11 @@ def getEpisodeName(seriesName, ident):
 
 
 def getCsv(shortName):
+    """Return a String containing the complete CSV of a show
+       Before making any requests to epguides the function checks if we already
+       downloaded the csv. If yes it returns it from cache. If not it request
+       the showpage parses it for the csv link gets that and returns it
+    """
     url = "http://epguides.com/common/exportToCSV.asp"
     if shortName not in cache:
         try:
@@ -80,12 +89,15 @@ def getCsv(shortName):
             sys.exit(1)
         soup = BeautifulSoup(csvCon.read())
         cache[shortName] = soup.find('pre').contents[0].strip()
+        csvCon.close()
 
     csvText = StringIO(cache[shortName])
     return csvText
 
 
 def getPartialPath(path):
+    """Shortens the path for output. Returns only last two folderlevels
+    and the filename"""
     return join(basename(dirname(dirname(path))), basename(dirname(path)),
                 basename(path))
 

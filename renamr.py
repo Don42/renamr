@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # ----------------------------------------------------------------------------
 # "THE SCOTCH-WARE LICENSE" (Revision 42):
 # <DonMarco42@gmail.com> wrote this file. As long as you retain this notice you
@@ -9,12 +9,12 @@
 
 import re
 import sys
-import unicodecsv
+import csv
 import argparse
 from os.path import exists, abspath, dirname, basename, join, splitext,\
     normpath, realpath, relpath
 from os import rename
-from urllib2 import urlopen, URLError, HTTPError
+from http.client import HTTPConnection, HTTPException, InvalidURL
 from BeautifulSoup import BeautifulSoup
 from cStringIO import StringIO
 
@@ -50,9 +50,9 @@ def buildIdentifer(identifier):
 def getEpisodeName(seriesName, ident):
     """Gets the Episode name from epguides"""
     shortName = seriesName.replace(" ", "")
-    reader = unicodecsv.reader(getCsv(shortName),  delimiter=',', encoding='utf-8')
+    reader = csv.reader(getCsv(shortName),  delimiter=',', encoding='utf-8')
     for line in reader:
-        if not line[0] == u'number':
+        if not line[0] == 'number':
             if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
                 return line[5]
     return ""
@@ -67,32 +67,23 @@ def getCsv(shortName):
     url = "http://epguides.com/common/exportToCSV.asp"
     if shortName not in cache:
         try:
-            con = urlopen("http://epguides.com/%s" % shortName)
-        except HTTPError, e:
-            print 'The server couldn\'t fulfill the request.'
-            print 'Error code: ', e.code
-            sys.exit(1)
-        except URLError, e:
-            print 'We failed to reach a server.'
-            print 'Reason: ', e.reason
-            sys.exit(1)
-        soup = BeautifulSoup(con.read())
-        link = soup.find('a', href=re.compile(url)).get("href")
-        con.close()
-        try:
-            csvCon = urlopen(link)
-        except HTTPError, e:
-            print 'The server couldn\'t fulfill the request.'
-            print 'Error code: ', e.code
-            sys.exit(1)
-        except URLError, e:
-            print 'We failed to reach a server.'
-            print 'Reason: ', e.reason
-            sys.exit(1)
-        soup = BeautifulSoup(csvCon.read())
-        cache[shortName] = soup.find('pre').contents[0].strip()
-        csvCon.close()
+            con = HTTPConnection("epguides.com")
+            con.request("GET", "/%s" % shortName)
+            soup = BeautifulSoup(con.getresponse())
+            link = soup.find('a', href=re.compile(url)).get("href")
+            con.request("GET", re.sub("http://epguides.com", "", link))
+            soup = BeautifulSoup(con.getresponse())
+            cache[shortName] = soup.find('pre').contents[0].strip()
+            con.close()
 
+        except HTTPException as e:
+            print ('The server couldn\'t fulfill the request.')
+            print ('Error code: %s' % e.code)
+            sys.exit(1)
+        except InvalidURL as e:
+            print ('We failed to reach a server.')
+            print ('Reason: %s' % e.reason)
+            sys.exit(1)
     csvText = StringIO(cache[shortName])
     return csvText
 
@@ -112,14 +103,14 @@ def main(argv):
     absFiles = map(realpath, map(normpath, files))
     for file in absFiles:
         if args.verbose:
-            print "Operating on File %s" % file
+            print ("Operating on File %s" % file)
         seriesName = getSeriesName(file)
         if args.verbose:
-            print "Found Seriesname %s" % seriesName
+            print ("Found Seriesname %s" % seriesName)
         try:
             ident = getIdentifier(file)
         except Exception as e:
-            print "Error %s: No regex match on file %s" % (e, file)
+            print ("Error %s: No regex match on file %s" % (e, file))
             continue
         epName = getEpisodeName(seriesName, ident)
         newName = "%s %s - %s" % (seriesName, buildIdentifer(ident), epName)
@@ -127,10 +118,10 @@ def main(argv):
         newPath = join(dirname(file), clean)
 
         if exists(newPath):
-            print "File %s already exists" % relpath(newPath)
+            print ("File %s already exists" % relpath(newPath))
         else:
             rename(file, newPath)
-        print "\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath))
+        print ("\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath)))
 
 
 def setupArgsParser():

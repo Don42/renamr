@@ -13,6 +13,7 @@ import csv
 import argparse
 from os.path import exists, abspath, dirname, basename, join, splitext,\
     normpath, realpath, relpath
+from urllib.parse import urlparse
 from os import rename
 from http.client import HTTPConnection, HTTPException, InvalidURL
 from BeautifulSoup import BeautifulSoup
@@ -70,8 +71,8 @@ def getCsv(shortName):
             con = HTTPConnection("epguides.com")
             con.request("GET", "/%s" % shortName)
             soup = BeautifulSoup(con.getresponse())
-            link = soup.find('a', href=re.compile(url)).get("href")
-            con.request("GET", re.sub("http://epguides.com", "", link))
+            link = urlparse(soup.find('a', href=re.compile(url)).get("href"))
+            con.request("GET", link.path)
             soup = BeautifulSoup(con.getresponse())
             cache[shortName] = soup.find('pre').contents[0].strip()
             con.close()

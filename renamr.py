@@ -13,11 +13,12 @@ import csv
 import argparse
 from os.path import exists, abspath, dirname, basename, join, splitext,\
     normpath, realpath, relpath
-from urllib.parse import urlparse
+#from urllib.parse import urlparse
 from os import rename
 from http.client import HTTPConnection, HTTPException, InvalidURL
-from BeautifulSoup import BeautifulSoup
-from cStringIO import StringIO
+from bs4 import BeautifulSoup
+from io import StringIO
+from urllib import parse
 
 
 regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})", "[S|s](\d{2})(\d{2})[^p]",
@@ -51,11 +52,14 @@ def buildIdentifer(identifier):
 def getEpisodeName(seriesName, ident):
     """Gets the Episode name from epguides"""
     shortName = seriesName.replace(" ", "")
-    reader = csv.reader(getCsv(shortName),  delimiter=',', encoding='utf-8')
-    for line in reader:
-        if not line[0] == 'number':
-            if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
-                return line[5]
+    try:
+        reader = csv.reader(getCsv(shortName),  delimiter=',')
+        for line in reader:
+            if not line[0] == 'number':
+                if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
+                    return line[5]
+    except Exception as e:
+        print (e.reason())
     return ""
 
 
@@ -66,13 +70,18 @@ def getCsv(shortName):
        the showpage parses it for the csv link gets that and returns it
     """
     url = "http://epguides.com/common/exportToCSV.asp"
+    host = "epguides.com"
     if shortName not in cache:
         try:
-            con = HTTPConnection("epguides.com")
-            con.request("GET", "/%s" % shortName)
+            con = HTTPConnection(host)
+            con.request("GET", "/%s/" % shortName)
             soup = BeautifulSoup(con.getresponse())
-            link = urlparse(soup.find('a', href=re.compile(url)).get("href"))
-            con.request("GET", link.path)
+            soup_res = soup.find('a', href=re.compile(url))
+            if soup_res is None:
+                raise Exception("Link not found in Site: %s/%s/shortName"
+                                % (host, shortName))
+            link = parse.urlparse(soup_res.get("href"))
+            con.request("GET", "%s?%s" % (link.path, link.query))
             soup = BeautifulSoup(con.getresponse())
             cache[shortName] = soup.find('pre').contents[0].strip()
             con.close()

@@ -13,7 +13,6 @@ import csv
 import argparse
 from os.path import exists, abspath, dirname, basename, join, splitext,\
     normpath, realpath, relpath
-#from urllib.parse import urlparse
 from os import rename
 from http.client import HTTPConnection, HTTPException, InvalidURL
 from bs4 import BeautifulSoup
@@ -25,6 +24,7 @@ regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})", "[S|s](\d{2})(\d{2})[^p]",
            "(\d{2})(\d{2})",  "(\d{1})(\d{2})[^p]"]
 
 cache = {}
+verbosityLevel = 1
 
 
 def getSeriesName(fileName):
@@ -59,7 +59,7 @@ def getEpisodeName(seriesName, ident):
                 if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
                     return line[5]
     except Exception as e:
-        print (e.reason())
+        debugPrint(1, e.reason())
     return ""
 
 
@@ -87,12 +87,11 @@ def getCsv(shortName):
             con.close()
 
         except HTTPException as e:
-            print ('The server couldn\'t fulfill the request.')
-            print ('Error code: %s' % e.code)
+            debugPrint(0, 'The server couldn\'t fulfill the request.\n'
+                       'Error code: %s' % e.code)
             sys.exit(1)
         except InvalidURL as e:
-            print ('We failed to reach a server.')
-            print ('Reason: %s' % e.reason)
+            debugPrint(0, 'We failed to reach a server.\nReason: %s' % e.reason)
             sys.exit(1)
     csvText = StringIO(cache[shortName])
     return csvText
@@ -105,22 +104,27 @@ def getPartialPath(path):
                 basename(path))
 
 
+def debugPrint(verbosity, message):
+    if(verbosityLevel >= verbosity):
+        print(message)
+
+
 def main(argv):
     parser = setupArgsParser()
     args = parser.parse_args()
+    global verbosityLevel
+    verbosityLevel = (args.verbose + 1)
 
     files = filter(exists, args.filenames)
     absFiles = map(realpath, map(normpath, files))
     for file in absFiles:
-        if args.verbose:
-            print ("Operating on File %s" % file)
+        debugPrint(2, "Operating on File %s" % file)
         seriesName = getSeriesName(file)
-        if args.verbose:
-            print ("Found Seriesname %s" % seriesName)
+        debugPrint(2, "Found Seriesname %s" % seriesName)
         try:
             ident = getIdentifier(file)
         except Exception as e:
-            print ("Error %s: No regex match on file %s" % (e, file))
+            debugPrint(0, "Error %s: No regex match on file %s" % (e, file))
             continue
         epName = getEpisodeName(seriesName, ident)
         newName = "%s %s - %s" % (seriesName, buildIdentifer(ident), epName)
@@ -128,10 +132,10 @@ def main(argv):
         newPath = join(dirname(file), clean)
 
         if exists(newPath):
-            print ("File %s already exists" % relpath(newPath))
+            debugPrint(1, "File %s already exists" % relpath(newPath))
         else:
             rename(file, newPath)
-        print ("\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath)))
+        debugPrint(1, "\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath)))
 
 
 def setupArgsParser():
@@ -145,7 +149,7 @@ def setupArgsParser():
                                      epguides.""")
     parser.add_argument('filenames', nargs='+', help='paths to the episodes')
     parser.add_argument("-v", "--verbose", help="increase output verbosity",
-                        action="store_true")
+                        action="count")
     return parser
 
 

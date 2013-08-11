@@ -9,8 +9,8 @@
 
 import re
 import sys
-import csv
 import argparse
+import csv
 from os.path import exists, abspath, dirname, basename, join, splitext,\
     normpath, realpath, relpath
 from os import rename
@@ -20,50 +20,60 @@ from io import StringIO
 from urllib import parse
 
 
-regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})", "[S|s](\d{2})(\d{2})[^p]",
-           "(\d{2})(\d{2})",  "(\d{1})(\d{2})[^p]"]
+regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})",
+           "[S|s](\d{2})(\d{2})[^p]",
+           "(\d{2})(\d{2})[^p]",
+           "(\d{1})(\d{2})[^p^\d]"]
 
 cache = {}
 verbosityLevel = 1
 
 
-def getSeriesName(fileName):
+class NoRegexMatchException(ValueError):
+    pass
+
+
+def get_series_name(filename):
     """Gets the seriesname from the directory structure"""
-    absPath = abspath(fileName)
+    absPath = abspath(filename)
     seriesName = basename(dirname(dirname(absPath)))
     return seriesName
 
 
-def getIdentifier(fileName):
+def get_identifier(filename):
     """Tries multiple regexes to get season and episodenumber"""
     for regex in regexes:
-        match = re.search(regex, basename(fileName))
+        match = re.search(regex, basename(filename))
         if match is not None:
             ident = (int(match.groups()[0]), int(match.groups()[1]))
             return ident
-    raise Exception("NoRegexMatch")
+    raise NoRegexMatchException()
 
 
-def buildIdentifer(identifier):
+def build_identifier(identifier):
     """Builds the episode identifier, consisting of season and episodenumber"""
-    return "S%02dE%02d" % identifier
+    ret = "S{ident[0]:>02}E{ident[1]:>02}".format(ident=identifier)
+    (season, episode) = identifier
+    if season < 0 or episode < 0:
+        raise ValueError("Season and Episode can't be negative")
+    return ret
 
 
-def getEpisodeName(seriesName, ident):
+def get_episode_name(ident, csv_data):
     """Gets the Episode name from epguides"""
-    shortName = seriesName.replace(" ", "")
     try:
-        reader = csv.reader(getCsv(shortName),  delimiter=',')
+        reader = csv.reader(csv_data,  delimiter=',')
         for line in reader:
             if not line[0] == 'number':
-                if int(line[1]) == int(ident[0]) and int(line[2]) == int(ident[1]):
+                if int(line[1]) == int(ident[0]) and (int(line[2]) ==
+                                                      int(ident[1])):
                     return line[5]
     except Exception as e:
-        debugPrint(1, e.reason())
+        debug_print(1, e.reason())
     return ""
 
 
-def getCsv(shortName):
+def get_csv(short_name):
     """Return a String containing the complete CSV of a show
        Before making any requests to epguides the function checks if we already
        downloaded the csv. If yes it returns it from cache. If not it request
@@ -71,42 +81,70 @@ def getCsv(shortName):
     """
     url = "http://epguides.com/common/exportToCSV.asp"
     host = "epguides.com"
-    if shortName not in cache:
+    if short_name not in cache:
         try:
             con = HTTPConnection(host)
-            con.request("GET", "/%s/" % shortName)
+            con.request("GET", "/{name}/".format(name=short_name))
             soup = BeautifulSoup(con.getresponse())
             soup_res = soup.find('a', href=re.compile(url))
             if soup_res is None:
-                raise Exception("Link not found in Site: %s/%s/shortName"
-                                % (host, shortName))
+                raise Exception("""Link not found in Site: {host_}/{name}/
+                                shortName""".format(host_=host, name=short_name))
             link = parse.urlparse(soup_res.get("href"))
-            con.request("GET", "%s?%s" % (link.path, link.query))
+            con.request("GET", "{path}?{query}".format(path=link.path,
+                                                       query=link.query))
             soup = BeautifulSoup(con.getresponse())
-            cache[shortName] = soup.find('pre').contents[0].strip()
+            cache[short_name] = soup.find('pre').contents[0].strip()
             con.close()
 
         except HTTPException as e:
-            debugPrint(0, 'The server couldn\'t fulfill the request.\n'
-                       'Error code: %s' % e.code)
-            sys.exit(1)
+            debug_print(0, 'The server couldn\'t fulfill the request.\n'
+                        'Error code: {code}'.format(code=e.code))
+            raise
         except InvalidURL as e:
-            debugPrint(0, 'We failed to reach a server.\nReason: %s' % e.reason)
-            sys.exit(1)
-    csvText = StringIO(cache[shortName])
+            debug_print(
+                0, 'We failed to reach a server.\nReason: {reason}'.format(
+                    reason=e.reason))
+            raise
+    csvText = StringIO(cache[short_name])
     return csvText
 
 
-def getPartialPath(path):
+def get_partial_path(path):
     """Shortens the path for output. Returns only last two folderlevels
     and the filename"""
     return join(basename(dirname(dirname(path))), basename(dirname(path)),
                 basename(path))
 
 
-def debugPrint(verbosity, message):
+def debug_print(verbosity, message):
+    """Print message if global verbosityLevel is higher than verbosity"""
     if(verbosityLevel >= verbosity):
         print(message)
+
+
+def make_new_path(series_name, ident, ep_name, old_path):
+    """Generate new path for file"""
+    if None in (series_name, ident, old_path):
+        raise ValueError("Parameters can't be 'None'")
+    new_name = "{series} {ident_} - {epname}".format(
+        series=series_name,
+        ident_=build_identifier(ident),
+        epname=ep_name)
+    clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "", new_name + splitext(old_path)[1])
+    return join(old_path, clean)
+
+
+def rename_file(old_path, new_path):
+    """Rename file if it does not already exist"""
+    if exists(new_path):
+        debug_print(1, "File {new} already exists".format(
+            new=relpath(new_path)))
+    else:
+        rename(old_path, new_path)
+    debug_print(1, "\"{old}\"|\"{new}\"".format(
+        old=get_partial_path(old_path),
+        new=get_partial_path(new_path)))
 
 
 def main(argv):
@@ -117,25 +155,33 @@ def main(argv):
 
     files = filter(exists, args.filenames)
     absFiles = map(realpath, map(normpath, files))
-    for file in absFiles:
-        debugPrint(2, "Operating on File %s" % file)
-        seriesName = getSeriesName(file)
-        debugPrint(2, "Found Seriesname %s" % seriesName)
-        try:
-            ident = getIdentifier(file)
-        except Exception as e:
-            debugPrint(0, "Error %s: No regex match on file %s" % (e, file))
-            continue
-        epName = getEpisodeName(seriesName, ident)
-        newName = "%s %s - %s" % (seriesName, buildIdentifer(ident), epName)
-        clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "", newName + splitext(file)[1])
-        newPath = join(dirname(file), clean)
 
-        if exists(newPath):
-            debugPrint(1, "File %s already exists" % relpath(newPath))
-        else:
-            rename(file, newPath)
-        debugPrint(1, "\"%s\"|\"%s\"" % (getPartialPath(file), getPartialPath(newPath)))
+    for file in absFiles:
+        debug_print(2, "Operating on File {filename}".format(filename=file))
+        series_name = get_series_name(file)
+        debug_print(2, "Found Seriesname {name}".format(name=series_name))
+        try:
+            ident = get_identifier(file)
+        except NoRegexMatchException:
+            debug_print(0, "Error: No regex match on file {file_}".format(
+                file_=file))
+            continue
+        try:
+            short_name = series_name.replace(" ", "")
+            csv_data = get_csv(short_name)
+        except HTTPException:
+            continue
+        except InvalidURL:
+            continue
+        ep_name = get_episode_name(ident, csv_data)
+        new_path = make_new_path(series_name,
+                                 ident,
+                                 ep_name,
+                                 dirname(file))
+        rename_file(file, new_path)
+    else:
+        debug_print(2, "Done processing all files")
+        sys.exit(0)
 
 
 def setupArgsParser():
@@ -149,7 +195,7 @@ def setupArgsParser():
                                      epguides.""")
     parser.add_argument('filenames', nargs='+', help='paths to the episodes')
     parser.add_argument("-v", "--verbose", help="increase output verbosity",
-                        action="count")
+                        action="count", default=0)
     return parser
 
 

@@ -36,8 +36,8 @@ class NoRegexMatchException(ValueError):
 def get_series_name(filename):
     """Gets the seriesname from the directory structure"""
     absPath = abspath(filename)
-    seriesName = basename(dirname(dirname(absPath)))
-    return seriesName
+    series_name = basename(dirname(dirname(absPath)))
+    return series_name
 
 
 def get_identifier(filename):
@@ -59,21 +59,7 @@ def build_identifier(identifier):
     return ret
 
 
-def get_episode_name(ident, csv_data):
-    """Gets the Episode name from epguides"""
-    try:
-        reader = csv.reader(csv_data,  delimiter=',')
-        for line in reader:
-            if not line[0] == 'number':
-                if int(line[1]) == int(ident[0]) and (int(line[2]) ==
-                                                      int(ident[1])):
-                    return line[5]
-    except Exception as e:
-        debug_print(1, e.reason())
-    return ""
-
-
-def get_csv(short_name):
+def get_csv(series_name):
     """Return a String containing the complete CSV of a show
        Before making any requests to epguides the function checks if we already
        downloaded the csv. If yes it returns it from cache. If not it request
@@ -81,6 +67,7 @@ def get_csv(short_name):
     """
     url = "http://epguides.com/common/exportToCSV.asp"
     host = "epguides.com"
+    short_name = series_name.replace(" ", "")
     if short_name not in cache:
         try:
             con = HTTPConnection(host)
@@ -108,6 +95,26 @@ def get_csv(short_name):
             raise
     csvText = StringIO(cache[short_name])
     return csvText
+
+
+def get_episode_name(ident, series_name, data_provider=get_csv):
+    """Gets the Episode name from epguides"""
+    try:
+        reader = csv.reader(data_provider(series_name),  delimiter=',', quotechar='"')
+        for line in reader:
+            if not line[0] == 'number':
+                if int(line[1]) == int(ident[0]) and (int(line[2]) ==
+                                                      int(ident[1])):
+                    return line[5]
+    except HTTPException as e:
+        raise
+    except InvalidURL as e:
+        raise
+    except IndexError:
+        pass
+    except Exception as e:
+        debug_print(1, e.reason())
+    return ""
 
 
 def get_partial_path(path):
@@ -167,13 +174,11 @@ def main(argv):
                 file_=file))
             continue
         try:
-            short_name = series_name.replace(" ", "")
-            csv_data = get_csv(short_name)
+            ep_name = get_episode_name(ident, series_name)
         except HTTPException:
             continue
         except InvalidURL:
             continue
-        ep_name = get_episode_name(ident, csv_data)
         new_path = make_new_path(series_name,
                                  ident,
                                  ep_name,

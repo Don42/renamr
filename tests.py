@@ -7,6 +7,7 @@
 # Marco 'don' Kaulea
 # ----------------------------------------------------------------------------
 
+import io
 import unittest
 import renamr
 
@@ -127,6 +128,11 @@ class test_renamr(unittest.TestCase):
         with self.assertRaises(renamr.NoRegexMatchException):
             renamr.get_identifier(
                 "/media/Some Show(2005)/Season 01/ixc.720p.1080p.mkv")
+
+    def test_get_episode_name(self):
+        data = lambda x: io.StringIO("""number,blub,stuff,psps,blbub,name\n001,5,16,516,,"Felina"\n""")
+        ret = renamr.get_episode_name((5, 16), "Breaking Bad", data)
+        self.assertEqual("Felina", ret)
 
 
 def suite():

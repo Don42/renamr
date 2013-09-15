@@ -184,7 +184,7 @@ def main(args):
     for file in absFiles:
         debug_print(2, "Operating on File {filename}".format(filename=file))
         series_name = ""
-        if(len(args["--name"]) == 0):
+        if(not args["--name"]):
             series_name = get_series_name(file)
         else:
             series_name = args["--name"][0]

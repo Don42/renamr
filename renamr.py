@@ -16,13 +16,13 @@ identical to the naemof the series on epguides. Spaces in the foldername are
 ignored  when quering epguides.
 
 Usage:
-    renamr.py [-v | -vv] [-n <name>]
-              [--name <name>]
-              <file>...
+    renamr.py [options] [-v...] [--verbose...] [-q...] [--quiet] -
+    renamr.py [options] [-v...] [--verbose...] [-q...] [--quiet] <file>...
 
 Options:
     -n <name>, --name <name>    Define SeriesName to use
-    -v --verbose   Increase verbosity [default: 1]
+    -v --verbose   Increase verbosity
+    -q --quite     Reduce verbosity
 """
 
 import re
@@ -96,7 +96,8 @@ def get_csv(series_name):
             soup_res = soup.find('a', href=re.compile(url))
             if soup_res is None:
                 raise Exception("""Link not found in Site: {host_}/{name}/
-                                shortName""".format(host_=host, name=short_name))
+                                \nTry specifing the name with --name.
+                                """.format(host_=host, name=short_name))
             link = parse.urlparse(soup_res.get("href"))
             con.request("GET", "{path}?{query}".format(path=link.path,
                                                        query=link.query))
@@ -165,7 +166,7 @@ def make_new_path(series_name, ident, ep_name, old_path):
 def rename_file(old_path, new_path):
     """Rename file if it does not already exist"""
     if exists(new_path):
-        debug_print(1, "File {new} already exists".format(
+        debug_print(2, "File {new} already exists".format(
             new=relpath(new_path)))
     else:
         rename(old_path, new_path)
@@ -174,21 +175,35 @@ def rename_file(old_path, new_path):
         new=get_partial_path(new_path)))
 
 
+def read_files_from_args(fileList):
+    files = filter(exists, fileList)
+    absFiles = map(realpath, map(normpath, files))
+    return absFiles
+
+
+def read_files_from_file(path):
+    fileList = [line.replace("\n", "") for line in path]
+    return read_files_from_args(fileList)
+
+
 def main(args):
     global verbosityLevel
-    verbosityLevel = args["--verbose"] + 1
+    verbosityLevel = (args["--verbose"] + 1 - args["--quite"])
 
-    files = filter(exists, args["<file>"])
-    absFiles = map(realpath, map(normpath, files))
+    absFiles = []
+    if(not args["-"]):
+        absFiles = read_files_from_args(args["<file>"])
+    else:
+        absFiles = read_files_from_file(sys.stdin)
 
     for file in absFiles:
-        debug_print(2, "Operating on File {filename}".format(filename=file))
+        debug_print(3, "Operating on File {filename}".format(filename=file))
         series_name = ""
         if(not args["--name"]):
             series_name = get_series_name(file)
         else:
-            series_name = args["--name"][0]
-        debug_print(2, "Using Seriesname {name}".format(name=series_name))
+            series_name = args["--name"]
+        debug_print(3, "Using Seriesname {name}".format(name=series_name))
 
         try:
             ident = get_identifier(file)
@@ -209,10 +224,10 @@ def main(args):
                                  ident,
                                  ep_name,
                                  file)
-        debug_print(2, "New path: {new}".format(new=new_path))
+        debug_print(3, "New path: {new}".format(new=new_path))
         rename_file(file, new_path)
     else:
-        debug_print(2, "Done processing all files")
+        debug_print(3, "Done processing all files")
         sys.exit(0)
 
 

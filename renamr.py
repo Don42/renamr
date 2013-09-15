@@ -7,10 +7,30 @@
 # Marco 'don' Kaulea
 # ----------------------------------------------------------------------------
 
+"""renamr
+
+Rename TV Series Episodes
+Files have to be sorted into Folders, like "SeriesName/Season/File.ext" only the
+Seriesname is relevant. It is used to query epguides.com, so it should be
+identical to the naemof the series on epguides. Spaces in the foldername are
+ignored  when quering epguides.
+
+Usage:
+    renamr.py [-v | -vv] [-n <name>]
+              [--name <name>]
+              <file>...
+
+Options:
+    -n <name>, --name <name>    Define SeriesName to use
+    -v --verbose   Increase verbosity [default: 1]
+"""
+
 import re
 import sys
-import argparse
 import csv
+
+import docopt as dopt
+
 from os.path import exists, abspath, dirname, basename, join, splitext,\
     normpath, realpath, relpath
 from os import rename
@@ -138,8 +158,10 @@ def make_new_path(series_name, ident, ep_name, old_path):
         series=series_name,
         ident_=build_identifier(ident),
         epname=ep_name)
-    clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "", new_name + splitext(old_path)[1])
-    return join(old_path, clean)
+    clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "",
+                   "".join([new_name, splitext(old_path)[1]]))
+    new_path = join(dirname(old_path), clean)
+    return new_path
 
 
 def rename_file(old_path, new_path):
@@ -154,55 +176,48 @@ def rename_file(old_path, new_path):
         new=get_partial_path(new_path)))
 
 
-def main(argv):
-    parser = setupArgsParser()
-    args = parser.parse_args()
+def main(args):
     global verbosityLevel
-    verbosityLevel = (args.verbose + 1)
+    verbosityLevel = args["--verbose"] + 1
 
-    files = filter(exists, args.filenames)
+    files = filter(exists, args["<file>"])
     absFiles = map(realpath, map(normpath, files))
 
     for file in absFiles:
         debug_print(2, "Operating on File {filename}".format(filename=file))
-        series_name = get_series_name(file)
-        debug_print(2, "Found Seriesname {name}".format(name=series_name))
+        series_name = ""
+        if("--name" in args.keys()):
+            series_name = get_series_name(file)
+        else:
+            series_name = args["name"]
+        debug_print(2, "Using Seriesname {name}".format(name=series_name))
+
         try:
             ident = get_identifier(file)
         except NoRegexMatchException:
-            debug_print(0, "Error: No regex match on file {file_}".format(
-                file_=file))
+            debug_print(
+                0, "Error: No regex match on file {file_}. Skipping".format(
+                    file_=file))
             continue
+
         try:
             ep_name = get_episode_name(ident, series_name)
         except HTTPException:
             continue
         except InvalidURL:
             continue
+
         new_path = make_new_path(series_name,
                                  ident,
                                  ep_name,
-                                 dirname(file))
+                                 file)
+        debug_print(2, "New path: {new}".format(new=new_path))
         rename_file(file, new_path)
     else:
         debug_print(2, "Done processing all files")
         sys.exit(0)
 
 
-def setupArgsParser():
-    parser = argparse.ArgumentParser(description="""Rename TV Series Episodes
-                                     Files have to be sorted into Folders, like
-                                     "SeriesName/Season/File.ext" only the
-                                     Seriesname is relevant. It is used to query
-                                     epguides.com. So it should be identical to the
-                                     name of the series on epguides. Spaces
-                                     in the foldername are ignored when quering
-                                     epguides.""")
-    parser.add_argument('filenames', nargs='+', help='paths to the episodes')
-    parser.add_argument("-v", "--verbose", help="increase output verbosity",
-                        action="count", default=0)
-    return parser
-
-
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    arguments = dopt.docopt(__doc__)
+    main(arguments)

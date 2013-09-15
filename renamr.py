@@ -218,5 +218,4 @@ def main(args):
 
 if __name__ == "__main__":
     arguments = dopt.docopt(__doc__)
-    print(arguments)
     main(arguments)

@@ -126,14 +126,12 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
                 if int(line[1]) == int(ident[0]) and (int(line[2]) ==
                                                       int(ident[1])):
                     return line[5]
-    except HTTPException as e:
+    except HTTPException:
         raise
-    except InvalidURL as e:
+    except InvalidURL:
         raise
     except IndexError:
         pass
-    except Exception as e:
-        debug_print(1, e.reason())
     return ""
 
 
@@ -186,10 +184,10 @@ def main(args):
     for file in absFiles:
         debug_print(2, "Operating on File {filename}".format(filename=file))
         series_name = ""
-        if("--name" in args.keys()):
+        if("--name" not in args.keys()):
             series_name = get_series_name(file)
         else:
-            series_name = args["name"]
+            series_name = args["--name"][0]
         debug_print(2, "Using Seriesname {name}".format(name=series_name))
 
         try:
@@ -220,4 +218,5 @@ def main(args):
 
 if __name__ == "__main__":
     arguments = dopt.docopt(__doc__)
+    print(arguments)
     main(arguments)

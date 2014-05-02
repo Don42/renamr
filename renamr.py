@@ -10,8 +10,8 @@
 """renamr
 
 Rename TV Series Episodes
-Files have to be sorted into Folders, like "SeriesName/Season/File.ext" only the
-Seriesname is relevant. It is used to query epguides.com, so it should be
+Files have to be sorted into Folders, like "SeriesName/Season/File.ext" only
+the Seriesname is relevant. It is used to query epguides.com, so it should be
 identical to the naemof the series on epguides. Spaces in the foldername are
 ignored  when quering epguides.
 
@@ -40,9 +40,9 @@ from io import StringIO
 from urllib import parse
 
 
-regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})",
+regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})[^\d]",
            "[S|s](\d{2})(\d{2})[^p]",
-           "(\d{2})(\d{2})[^p]",
+           "[^_](\d{2})(\d{2})[^p]",
            "(\d{1})(\d{2})[^p^\d]"]
 
 cache = {}
@@ -121,7 +121,10 @@ def get_csv(series_name):
 def get_episode_name(ident, series_name, data_provider=get_csv):
     """Gets the Episode name from epguides"""
     try:
-        reader = csv.reader(data_provider(series_name),  delimiter=',', quotechar='"')
+        reader = csv.reader(
+            data_provider(series_name),
+            delimiter=',',
+            quotechar='"')
         for line in reader:
             if not line[0] == 'number':
                 if int(line[1]) == int(ident[0]) and (int(line[2]) ==

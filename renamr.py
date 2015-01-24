@@ -25,19 +25,15 @@ Options:
     -q --quite     Reduce verbosity
 """
 
+import bs4
+import csv
+import docopt as dopt
+import http
+import io
+import os
 import re
 import sys
-import csv
-
-import docopt as dopt
-
-from os.path import exists, abspath, dirname, basename, join, splitext,\
-    normpath, realpath, relpath
-from os import rename
-from http.client import HTTPConnection, HTTPException, InvalidURL
-from bs4 import BeautifulSoup
-from io import StringIO
-from urllib import parse
+import urllib
 
 
 regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})[^\d]",
@@ -55,15 +51,15 @@ class NoRegexMatchException(ValueError):
 
 def get_series_name(filename):
     """Gets the seriesname from the directory structure"""
-    absPath = abspath(filename)
-    series_name = basename(dirname(dirname(absPath)))
+    absPath = os.path.abspath(filename)
+    series_name = os.path.basename(os.path.dirname(os.path.dirname(absPath)))
     return series_name
 
 
 def get_identifier(filename):
     """Tries multiple regexes to get season and episodenumber"""
     for regex in regexes:
-        match = re.search(regex, basename(filename))
+        match = re.search(regex, os.path.basename(filename))
         if match is not None:
             ident = (int(match.groups()[0]), int(match.groups()[1]))
             return ident
@@ -90,31 +86,31 @@ def get_csv(series_name):
     short_name = series_name.replace(" ", "")
     if short_name not in cache:
         try:
-            con = HTTPConnection(host)
+            con = http.client.HTTPConnection(host)
             con.request("GET", "/{name}/".format(name=short_name))
-            soup = BeautifulSoup(con.getresponse())
+            soup = bs4.BeautifulSoup(con.getresponse())
             soup_res = soup.find('a', href=re.compile(url))
             if soup_res is None:
                 raise Exception("""Link not found in Site: {host_}/{name}/
                                 \nTry specifing the name with --name.
                                 """.format(host_=host, name=short_name))
-            link = parse.urlparse(soup_res.get("href"))
+            link = urllib.parse.urlparse(soup_res.get("href"))
             con.request("GET", "{path}?{query}".format(path=link.path,
                                                        query=link.query))
-            soup = BeautifulSoup(con.getresponse())
+            soup = bs4.BeautifulSoup(con.getresponse())
             cache[short_name] = soup.find('pre').contents[0].strip()
             con.close()
 
-        except HTTPException as e:
+        except http.client.HTTPException as e:
             debug_print(0, 'The server couldn\'t fulfill the request.\n'
                         'Error code: {code}'.format(code=e.code))
             raise
-        except InvalidURL as e:
+        except http.client.InvalidURL as e:
             debug_print(
                 0, 'We failed to reach a server.\nReason: {reason}'.format(
                     reason=e.reason))
             raise
-    csvText = StringIO(cache[short_name])
+    csvText = io.StringIO(cache[short_name])
     return csvText
 
 
@@ -130,9 +126,9 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
                 if int(line[1]) == int(ident[0]) and (int(line[2]) ==
                                                       int(ident[1])):
                     return line[5]
-    except HTTPException:
+    except http.client.HTTPException:
         raise
-    except InvalidURL:
+    except http.client.InvalidURL:
         raise
     except IndexError:
         pass
@@ -142,8 +138,9 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
 def get_partial_path(path):
     """Shortens the path for output. Returns only last two folderlevels
     and the filename"""
-    return join(basename(dirname(dirname(path))), basename(dirname(path)),
-                basename(path))
+    return os.path.join(os.path.basename(os.path.dirname(os.pathdirname(path))),
+                        os.path.basename(os.path.dirname(path)),
+                        os.path.basename(path))
 
 
 def debug_print(verbosity, message):
@@ -161,26 +158,26 @@ def make_new_path(series_name, ident, ep_name, old_path):
         ident_=build_identifier(ident),
         epname=ep_name)
     clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "",
-                   "".join([new_name, splitext(old_path)[1]]))
-    new_path = join(dirname(old_path), clean)
+                   "".join([new_name, os.path.splitext(old_path)[1]]))
+    new_path = os.path.join(os.path.dirname(old_path), clean)
     return new_path
 
 
 def rename_file(old_path, new_path):
     """Rename file if it does not already exist"""
-    if exists(new_path):
+    if os.path.exists(new_path):
         debug_print(2, "File {new} already exists".format(
-            new=relpath(new_path)))
+            new=os.path.relpath(new_path)))
     else:
-        rename(old_path, new_path)
+        os.rename(old_path, new_path)
     debug_print(1, "\"{old}\"|\"{new}\"".format(
         old=get_partial_path(old_path),
         new=get_partial_path(new_path)))
 
 
 def read_files_from_args(fileList):
-    files = filter(exists, fileList)
-    absFiles = map(realpath, map(normpath, files))
+    files = filter(os.path.exists, fileList)
+    absFiles = map(os.path.realpath, map(os.path.normpath, files))
     return absFiles
 
 
@@ -218,9 +215,9 @@ def main(args):
 
         try:
             ep_name = get_episode_name(ident, series_name)
-        except HTTPException:
+        except http.client.HTTPException:
             continue
-        except InvalidURL:
+        except http.client.InvalidURL:
             continue
 
         new_path = make_new_path(series_name,

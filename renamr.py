@@ -28,17 +28,16 @@ Options:
 import bs4
 import csv
 import docopt as dopt
-import http
 import io
 import os
 import re
+import requests
 import sys
-import urllib
 
 
 regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})[^\d]",
            "[S|s](\d{2})(\d{2})[^p]",
-           "[^_](\d{2})(\d{2})[^p]",
+           "(\d{2})(\d{2})[^p]",
            "(\d{1})(\d{2})[^p^\d]"]
 
 cache = {}
@@ -86,30 +85,32 @@ def get_csv(series_name):
     short_name = series_name.replace(" ", "")
     if short_name not in cache:
         try:
-            con = http.client.HTTPConnection(host)
-            con.request("GET", "/{name}/".format(name=short_name))
-            soup = bs4.BeautifulSoup(con.getresponse())
+            session = requests.Session()
+            response = session.get('http://epguides.com/{name}/'.format(
+                name=short_name))
+            if response.status_code != 200:
+                debug_print(0, ("The server couldn't fulfill the request."
+                            " Error code: {code}").format(response.status_code))
+                raise
+            response.encoding = 'utf-8'
+            soup = bs4.BeautifulSoup(response.text)
             soup_res = soup.find('a', href=re.compile(url))
             if soup_res is None:
                 raise Exception("""Link not found in Site: {host_}/{name}/
                                 \nTry specifing the name with --name.
                                 """.format(host_=host, name=short_name))
-            link = urllib.parse.urlparse(soup_res.get("href"))
-            con.request("GET", "{path}?{query}".format(path=link.path,
-                                                       query=link.query))
-            soup = bs4.BeautifulSoup(con.getresponse())
+            response = session.get(soup_res.get('href'))
+            if response.status_code != 200:
+                debug_print(0, ("The server couldn't fulfill the request."
+                            " Error code: {code}").format(response.status_code))
+                raise
+            response.encoding = 'utf-8'
+            soup = bs4.BeautifulSoup(response.text)
             cache[short_name] = soup.find('pre').contents[0].strip()
-            con.close()
+        except requests.exceptions.RequestException as e:
+            debug_print(0, "Unknown error: {}".format(e))
+            raise
 
-        except http.client.HTTPException as e:
-            debug_print(0, 'The server couldn\'t fulfill the request.\n'
-                        'Error code: {code}'.format(code=e.code))
-            raise
-        except http.client.InvalidURL as e:
-            debug_print(
-                0, 'We failed to reach a server.\nReason: {reason}'.format(
-                    reason=e.reason))
-            raise
     csvText = io.StringIO(cache[short_name])
     return csvText
 
@@ -126,10 +127,6 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
                 if int(line[1]) == int(ident[0]) and (int(line[2]) ==
                                                       int(ident[1])):
                     return line[5]
-    except http.client.HTTPException:
-        raise
-    except http.client.InvalidURL:
-        raise
     except IndexError:
         pass
     return ""
@@ -213,12 +210,7 @@ def main(args):
                     file_=file))
             continue
 
-        try:
-            ep_name = get_episode_name(ident, series_name)
-        except http.client.HTTPException:
-            continue
-        except http.client.InvalidURL:
-            continue
+        ep_name = get_episode_name(ident, series_name)
 
         new_path = make_new_path(series_name,
                                  ident,

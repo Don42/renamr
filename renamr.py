@@ -73,7 +73,7 @@ def build_identifier(identifier):
     """Builds the episode identifier, consisting of season and episodenumber"""
     if identifier.season < 0 or identifier.episode < 0:
         raise ValueError("Season and Episode can't be negative")
-    ret = "S{ident.season:>02}E{ident.episode:>02}".format(ident=identifier)
+    ret = 'S{ident.season:>02}E{ident.episode:>02}'.format(ident=identifier)
     return ret
 
 
@@ -83,9 +83,9 @@ def get_csv(series_name):
        downloaded the csv. If yes it returns it from cache. If not it request
        the showpage parses it for the csv link gets that and returns it
     """
-    url = "http://epguides.com/common/exportToCSV.asp"
-    host = "epguides.com"
-    short_name = series_name.replace(" ", "")
+    url = 'http://epguides.com/common/exportToCSV.asp'
+    host = 'epguides.com'
+    short_name = series_name.replace(' ', '')
     if short_name not in cache:
         try:
             session = requests.Session()
@@ -157,8 +157,8 @@ def make_new_path(series_name, ident, ep_name, old_path):
         series=series_name,
         ident_=build_identifier(ident),
         epname=ep_name)
-    clean = re.sub(r"[\\\:\*\?\"\<\>\|]", "",
-                   "".join([new_name, os.path.splitext(old_path)[1]]))
+    clean = re.sub(r'[\\\:\*\?\"\<\>\|]', '',
+                   ''.join([new_name, os.path.splitext(old_path)[1]]))
     new_path = os.path.join(os.path.dirname(old_path), clean)
     return new_path
 
@@ -188,21 +188,21 @@ def read_files_from_file(path):
 
 def main(args):
     global verbosityLevel
-    verbosityLevel = (args["--verbose"] + 1 - args["--quite"])
+    verbosityLevel = (args['--verbose'] + 1 - args['--quite'])
 
     absFiles = []
-    if(not args["-"]):
-        absFiles = read_files_from_args(args["<file>"])
+    if(not args['-']):
+        absFiles = read_files_from_args(args['<file>'])
     else:
         absFiles = read_files_from_file(sys.stdin)
 
     for file in absFiles:
         debug_print(3, "Operating on File {filename}".format(filename=file))
-        series_name = ""
-        if(not args["--name"]):
+        series_name = ''
+        if(not args['--name']):
             series_name = get_series_name(file)
         else:
-            series_name = args["--name"]
+            series_name = args['--name']
         debug_print(3, "Using Seriesname {name}".format(name=series_name))
 
         try:
@@ -226,6 +226,6 @@ def main(args):
         sys.exit(0)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     arguments = dopt.docopt(__doc__)
     main(arguments)

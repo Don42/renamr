@@ -15,20 +15,24 @@ import renamr
 class test_renamr(unittest.TestCase):
 
     def test_build_identifier(self):
-        self.assertEqual("S01E01", renamr.build_identifier((1, 1)))
-        self.assertEqual("S10E20", renamr.build_identifier((10, 20)))
-        self.assertEqual("S11E999", renamr.build_identifier((11, 999)))
-        self.assertEqual("S00E00", renamr.build_identifier((0, 0)))
+        self.assertEqual("S01E01",
+                         renamr.build_identifier(renamr.EpisodeIdent(1, 1)))
+        self.assertEqual("S10E20",
+                         renamr.build_identifier(renamr.EpisodeIdent(10, 20)))
+        self.assertEqual("S11E999",
+                         renamr.build_identifier(renamr.EpisodeIdent(11, 999)))
+        self.assertEqual("S00E00",
+                         renamr.build_identifier(renamr.EpisodeIdent(0, 0)))
 
     def test_build_identifier_errors(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AttributeError):
             renamr.build_identifier(None)
         with self.assertRaises(Exception):
             renamr.build_identifier(15)
         with self.assertRaises(ValueError):
-            renamr.build_identifier((-1, 5))
+            renamr.build_identifier(renamr.EpisodeIdent(-1, 5))
         with self.assertRaises(ValueError):
-            renamr.build_identifier((1, -5))
+            renamr.build_identifier(renamr.EpisodeIdent(1, -5))
 
     def test_get_series_name_abs_path(self):
         self.assertEqual("Some Show", renamr.get_series_name(
@@ -130,8 +134,15 @@ class test_renamr(unittest.TestCase):
                 "/media/Some Show(2005)/Season 01/ixc.720p.1080p.mkv")
 
     def test_get_episode_name(self):
-        data = lambda x: io.StringIO("""number,blub,stuff,psps,blbub,name\n001,5,16,516,,"Felina"\n""")
-        ret = renamr.get_episode_name((5, 16), "Breaking Bad", data)
+        def data(series_name):
+            return io.StringIO(
+                """number,blub,stuff,psps,blbub,name
+                001,5,16,516,,"Felina"
+                """)
+        ret = renamr.get_episode_name(
+            renamr.EpisodeIdent(5, 16),
+            "Breaking Bad",
+            data)
         self.assertEqual("Felina", ret)
 
 

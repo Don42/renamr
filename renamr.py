@@ -25,6 +25,7 @@ Options:
     -q --quite     Reduce verbosity
 """
 
+import collections
 import bs4
 import csv
 import docopt as dopt
@@ -35,13 +36,15 @@ import requests
 import sys
 
 
-regexes = ["[S|s](\d{2})[E|e|-|_](\d{2})[^\d]",
-           "[S|s](\d{2})(\d{2})[^p]",
-           "(\d{2})(\d{2})[^p]",
-           "(\d{1})(\d{2})[^p^\d]"]
+regexes = ['[S|s](\d{2})[E|e|-|_](\d{2})[^\d]',
+           '[S|s](\d{2})(\d{2})[^p]',
+           '(\d{2})(\d{2})[^p]',
+           '(\d{1})(\d{2})[^p^\d]']
 
 cache = {}
 verbosityLevel = 1
+
+EpisodeIdent = collections.namedtuple('EpisodeIdent', ['season', 'episode'])
 
 
 class NoRegexMatchException(ValueError):
@@ -56,21 +59,21 @@ def get_series_name(filename):
 
 
 def get_identifier(filename):
-    """Tries multiple regexes to get season and episodenumber"""
+    """Tries multiple regexes to get season and episode number"""
     for regex in regexes:
         match = re.search(regex, os.path.basename(filename))
         if match is not None:
-            ident = (int(match.groups()[0]), int(match.groups()[1]))
+            ident = EpisodeIdent(int(match.groups()[0]),
+                                 int(match.groups()[1]))
             return ident
     raise NoRegexMatchException()
 
 
 def build_identifier(identifier):
     """Builds the episode identifier, consisting of season and episodenumber"""
-    ret = "S{ident[0]:>02}E{ident[1]:>02}".format(ident=identifier)
-    (season, episode) = identifier
-    if season < 0 or episode < 0:
+    if identifier.season < 0 or identifier.episode < 0:
         raise ValueError("Season and Episode can't be negative")
+    ret = "S{ident.season:>02}E{ident.episode:>02}".format(ident=identifier)
     return ret
 
 
@@ -124,8 +127,8 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
             quotechar='"')
         for line in reader:
             if not line[0] == 'number':
-                if int(line[1]) == int(ident[0]) and (int(line[2]) ==
-                                                      int(ident[1])):
+                if int(line[1]) == ident.season and (int(line[2]) ==
+                                                     ident.episode):
                     return line[5]
     except IndexError:
         pass

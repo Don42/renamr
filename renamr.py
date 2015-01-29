@@ -30,7 +30,7 @@ import bs4
 import csv
 import docopt as dopt
 import io
-import os
+import pathlib as pl
 import re
 import requests
 import sys
@@ -51,17 +51,16 @@ class NoRegexMatchException(ValueError):
     pass
 
 
-def get_series_name(filename):
+def get_series_name(file_path):
     """Gets the seriesname from the directory structure"""
-    absPath = os.path.abspath(filename)
-    series_name = os.path.basename(os.path.dirname(os.path.dirname(absPath)))
+    series_name = file_path.parts[-3]
     return series_name
 
 
 def get_identifier(filename):
     """Tries multiple regexes to get season and episode number"""
     for regex in regexes:
-        match = re.search(regex, os.path.basename(filename))
+        match = re.search(regex, filename)
         if match is not None:
             ident = EpisodeIdent(int(match.groups()[0]),
                                  int(match.groups()[1]))
@@ -138,9 +137,7 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
 def get_partial_path(path):
     """Shortens the path for output. Returns only last two folderlevels
     and the filename"""
-    return os.path.join(os.path.basename(os.path.dirname(os.pathdirname(path))),
-                        os.path.basename(os.path.dirname(path)),
-                        os.path.basename(path))
+    return path.parts[-3:]
 
 
 def debug_print(verbosity, message):
@@ -153,64 +150,64 @@ def make_new_path(series_name, ident, ep_name, old_path):
     """Generate new path for file"""
     if None in (series_name, ident, old_path):
         raise ValueError("Parameters can't be 'None'")
-    new_name = "{series} {ident_} - {epname}".format(
+    new_name = "{series} {ident_} - {epname}{ext}".format(
         series=series_name,
         ident_=build_identifier(ident),
-        epname=ep_name)
-    clean = re.sub(r'[\\\:\*\?\"\<\>\|]', '',
-                   ''.join([new_name, os.path.splitext(old_path)[1]]))
-    new_path = os.path.join(os.path.dirname(old_path), clean)
-    return new_path
+        epname=ep_name,
+        ext=old_path.suffix)
+    return old_path.with_name(new_name)
 
 
 def rename_file(old_path, new_path):
     """Rename file if it does not already exist"""
-    if os.path.exists(new_path):
+    if new_path.exists():
         debug_print(2, "File {new} already exists".format(
-            new=os.path.relpath(new_path)))
+            new=new_path))
     else:
-        os.rename(old_path, new_path)
+        old_path.rename(new_path)
     debug_print(1, "\"{old}\"|\"{new}\"".format(
         old=get_partial_path(old_path),
         new=get_partial_path(new_path)))
 
 
-def read_files_from_args(fileList):
-    files = filter(os.path.exists, fileList)
-    absFiles = map(os.path.realpath, map(os.path.normpath, files))
+def read_files_from_args(file_list):
+    files = filter(pl.Path.exists, file_list)
+    absFiles = map(pl.Path.resolve, files)
     return absFiles
 
 
 def read_files_from_file(path):
-    fileList = [line.replace("\n", "") for line in path]
-    return read_files_from_args(fileList)
+    file_list = [pl.Path(line.replace("\n", "")) for line in path]
+    return read_files_from_args(file_list)
 
 
-def main(args):
+def main():
+    args = dopt.docopt(__doc__)
     global verbosityLevel
     verbosityLevel = (args['--verbose'] + 1 - args['--quite'])
 
     absFiles = []
     if(not args['-']):
-        absFiles = read_files_from_args(args['<file>'])
+        absFiles = read_files_from_args([pl.Path(x) for x in args['<file>']])
     else:
         absFiles = read_files_from_file(sys.stdin)
 
-    for file in absFiles:
-        debug_print(3, "Operating on File {filename}".format(filename=file))
+    for file_path in absFiles:
+        debug_print(3,
+                    "Operating on File {filename}".format(filename=file_path))
         series_name = ''
         if(not args['--name']):
-            series_name = get_series_name(file)
+            series_name = get_series_name(file_path)
         else:
             series_name = args['--name']
         debug_print(3, "Using Seriesname {name}".format(name=series_name))
 
         try:
-            ident = get_identifier(file)
+            ident = get_identifier(file_path.name)
         except NoRegexMatchException:
             debug_print(
                 0, "Error: No regex match on file {file_}. Skipping".format(
-                    file_=file))
+                    file_=file_path))
             continue
 
         ep_name = get_episode_name(ident, series_name)
@@ -218,14 +215,13 @@ def main(args):
         new_path = make_new_path(series_name,
                                  ident,
                                  ep_name,
-                                 file)
+                                 file_path)
         debug_print(3, "New path: {new}".format(new=new_path))
-        rename_file(file, new_path)
+        rename_file(file_path, new_path)
     else:
         debug_print(3, "Done processing all files")
         sys.exit(0)
 
 
 if __name__ == '__main__':
-    arguments = dopt.docopt(__doc__)
-    main(arguments)
+    main()

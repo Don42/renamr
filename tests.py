@@ -8,6 +8,7 @@
 # ----------------------------------------------------------------------------
 
 import io
+import pathlib as pl
 import unittest
 import renamr
 
@@ -36,11 +37,11 @@ class test_renamr(unittest.TestCase):
 
     def test_get_series_name_abs_path(self):
         self.assertEqual("Some Show", renamr.get_series_name(
-            "/Some Show/Season 1/bubl.mkv"))
+            pl.Path("/Some Show/Season 1/bubl.mkv")))
 
     def test_get_series_name_rel_path(self):
         self.assertEqual("Some Show", renamr.get_series_name(
-            "Some Show/Season 1/blbub"))
+            pl.Path("Some Show/Season 1/blbub")))
 
     def test_get_identifier_SxxExx(self):
         self.assertEqual((1, 1), renamr.get_identifier(

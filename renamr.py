@@ -16,13 +16,13 @@ identical to the naemof the series on epguides. Spaces in the foldername are
 ignored  when quering epguides.
 
 Usage:
-    renamr.py [options] [-v...] [--verbose...] [-q...] [--quiet] -
-    renamr.py [options] [-v...] [--verbose...] [-q...] [--quiet] <file>...
+    renamr.py [options] -
+    renamr.py [options] <file>...
 
 Options:
     -n <name>, --name <name>    Define SeriesName to use
     -v --verbose   Increase verbosity
-    -q --quite     Reduce verbosity
+    -q --quiet     Reduce verbosity
     -d --dry-run   Don't actually rename files
 """
 
@@ -31,11 +31,14 @@ import bs4
 import csv
 import docopt as dopt
 import io
+import logging
 import pathlib as pl
 import re
 import requests
 import sys
 
+logger = logging.getLogger('renamr')
+logger.setLevel(logging.INFO)
 
 regexes = ['[S|s](\d{2})[E|e|-|_](\d{2})[^\d]',
            '[S|s](\d{2})(\d{2})[^p]',
@@ -43,7 +46,6 @@ regexes = ['[S|s](\d{2})[E|e|-|_](\d{2})[^\d]',
            '(\d{1})(\d{2})[^p^\d]']
 
 cache = {}
-verbosityLevel = 1
 
 EpisodeIdent = collections.namedtuple('EpisodeIdent', ['season', 'episode'])
 
@@ -97,8 +99,9 @@ def get_csv(series_name):
             response = session.get('http://epguides.com/{name}/'.format(
                 name=short_name))
             if response.status_code != 200:
-                debug_print(0, ("The server couldn't fulfill the request."
-                            " Error code: {code}").format(response.status_code))
+                logger.error(("The server couldn't fulfill the request."
+                              " Error code: {code}").format(
+                                  response.status_code))
                 raise
             response.encoding = 'utf-8'
             soup = bs4.BeautifulSoup(response.text)
@@ -109,14 +112,15 @@ def get_csv(series_name):
                                 """.format(host_=host, name=short_name))
             response = session.get(soup_res.get('href'))
             if response.status_code != 200:
-                debug_print(0, ("The server couldn't fulfill the request."
-                            " Error code: {code}").format(response.status_code))
+                logger.error(("The server couldn't fulfill the request."
+                              " Error code: {code}").format(
+                                  response.status_code))
                 raise
             response.encoding = 'utf-8'
             soup = bs4.BeautifulSoup(response.text)
             cache[short_name] = soup.find('pre').contents[0].strip()
         except requests.exceptions.RequestException as e:
-            debug_print(0, "Unknown error: {}".format(e))
+            logger.error("Unknown error: {}".format(e))
             raise
 
     csvText = io.StringIO(cache[short_name])
@@ -146,12 +150,6 @@ def get_partial_path(path):
     return path.parts[-3:]
 
 
-def debug_print(verbosity, message):
-    """Print message if global verbosityLevel is higher than verbosity"""
-    if(verbosityLevel >= verbosity):
-        print(message)
-
-
 def make_new_path(series_name, ident, ep_name, old_path):
     """Generate new path for file"""
     if None in (series_name, ident, old_path):
@@ -167,11 +165,11 @@ def make_new_path(series_name, ident, ep_name, old_path):
 def rename_file(old_path, new_path):
     """Rename file if it does not already exist"""
     if new_path.exists():
-        debug_print(2, "File {new} already exists".format(
+        logger.warning("File {new} already exists".format(
             new=new_path))
     else:
         old_path.rename(new_path)
-    debug_print(1, "\"{old}\"|\"{new}\"".format(
+    logger.info("\"{old}\"|\"{new}\"".format(
         old=get_partial_path(old_path),
         new=get_partial_path(new_path)))
 
@@ -189,8 +187,10 @@ def read_files_from_file(path):
 
 def main():
     args = dopt.docopt(__doc__)
-    global verbosityLevel
-    verbosityLevel = (args['--verbose'] + 1 - args['--quite'])
+    if args['--quiet']:
+        logger.setLevel(logging.ERROR)
+    if args['--verbose']:
+        logger.setLevel(logging.DEBUG)
 
     absFiles = []
     if(not args['-']):
@@ -199,20 +199,19 @@ def main():
         absFiles = read_files_from_file(sys.stdin)
 
     for file_path in absFiles:
-        debug_print(3,
-                    "Operating on File {filename}".format(filename=file_path))
+        logger.debug("Operating on File {filename}".format(filename=file_path))
         series_name = ''
         if(not args['--name']):
             series_name = get_series_name(file_path)
         else:
             series_name = args['--name']
-        debug_print(3, "Using Seriesname {name}".format(name=series_name))
+        logger.debug("Using Seriesname {name}".format(name=series_name))
 
         try:
             ident = get_identifier(file_path)
         except NoRegexMatchException:
-            debug_print(
-                0, "Error: No regex match on file {file_}. Skipping".format(
+            logger.error(
+                "Error: No regex match on file {file_}. Skipping".format(
                     file_=file_path))
             continue
 
@@ -222,11 +221,11 @@ def main():
                                  ident,
                                  ep_name,
                                  file_path)
-        debug_print(3, "New path: {new}".format(new=new_path))
+        logger.debug("New path: {new}".format(new=new_path))
         if not args.get('--dry-run', False):
             rename_file(file_path, new_path)
     else:
-        debug_print(3, "Done processing all files")
+        logger.debug("Done processing all files")
         sys.exit(0)
 
 

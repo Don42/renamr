@@ -23,6 +23,7 @@ Options:
     -n <name>, --name <name>    Define SeriesName to use
     -v --verbose   Increase verbosity
     -q --quite     Reduce verbosity
+    -d --dry-run   Don't actually rename files
 """
 
 import collections
@@ -217,7 +218,8 @@ def main():
                                  ep_name,
                                  file_path)
         debug_print(3, "New path: {new}".format(new=new_path))
-        rename_file(file_path, new_path)
+        if not args.get('--dry-run', False):
+            rename_file(file_path, new_path)
     else:
         debug_print(3, "Done processing all files")
         sys.exit(0)

@@ -58,10 +58,15 @@ def get_series_name(file_path):
     return series_name
 
 
-def get_identifier(filename):
-    """Tries multiple regexes to get season and episode number"""
+def get_identifier(file_path):
+    """Tries multiple regexes to get season and episode number
+
+    Args:
+        filename (pathlib.Path): Absolute path to file
+
+    """
     for regex in regexes:
-        match = re.search(regex, filename)
+        match = re.search(regex, file_path.name)
         if match is not None:
             ident = EpisodeIdent(int(match.groups()[0]),
                                  int(match.groups()[1]))
@@ -204,7 +209,7 @@ def main():
         debug_print(3, "Using Seriesname {name}".format(name=series_name))
 
         try:
-            ident = get_identifier(file_path.name)
+            ident = get_identifier(file_path)
         except NoRegexMatchException:
             debug_print(
                 0, "Error: No regex match on file {file_}. Skipping".format(

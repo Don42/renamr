@@ -45,94 +45,94 @@ class test_renamr(unittest.TestCase):
 
     def test_get_identifier_SxxExx(self):
         self.assertEqual((1, 1), renamr.get_identifier(
-            "abfldi_S01E01.720p.mkv"))
+            pl.Path("abfldi_S01E01.720p.mkv")))
         self.assertEqual((11, 20), renamr.get_identifier(
-            "abfldi_s11E20.720p.mkv"))
+            pl.Path("abfldi_s11E20.720p.mkv")))
         self.assertEqual((99, 29), renamr.get_identifier(
-            "abfldi_S99e29.720p.mkv"))
+            pl.Path("abfldi_S99e29.720p.mkv")))
         self.assertEqual((10, 80), renamr.get_identifier(
-            "abfldi_s10_80.720p.mkv"))
+            pl.Path("abfldi_s10_80.720p.mkv")))
         self.assertEqual((1, 1), renamr.get_identifier(
-            "./abfldi_S01E01.720p.mkv"))
+            pl.Path("./abfldi_S01E01.720p.mkv")))
         self.assertEqual((11, 20), renamr.get_identifier(
-            "./abfldi_s11E20.720p.mkv"))
+            pl.Path("./abfldi_s11E20.720p.mkv")))
         self.assertEqual((99, 29), renamr.get_identifier(
-            "Some Show/Season 01/abfldi_S99e29.720p.mkv"))
+            pl.Path("Some Show/Season 01/abfldi_S99e29.720p.mkv")))
         self.assertEqual((10, 80), renamr.get_identifier(
-            "/Some Show/Season 1/abfldi_s10_80.720p.mkv"))
+            pl.Path("/Some Show/Season 1/abfldi_s10_80.720p.mkv")))
 
     def test_get_identifier_Sxxxx(self):
         self.assertEqual((1, 1), renamr.get_identifier(
-            "abfldi_S0101.720p.mkv"))
+            pl.Path("abfldi_S0101.720p.mkv")))
         self.assertEqual((11, 20), renamr.get_identifier(
-            "bfldi_S1120.720p.mkv"))
+            pl.Path("bfldi_S1120.720p.mkv")))
         self.assertEqual((99, 29), renamr.get_identifier(
-            "bfldi_S9929.720p.mkv"))
+            pl.Path("bfldi_S9929.720p.mkv")))
         self.assertEqual((10, 80), renamr.get_identifier(
-            "asduih_s1080.720p.mkv"))
+            pl.Path("asduih_s1080.720p.mkv")))
         self.assertEqual((1, 1), renamr.get_identifier(
-            "./abfldi_S0101.720p.mkv"))
+            pl.Path("./abfldi_S0101.720p.mkv")))
         self.assertEqual((11, 20), renamr.get_identifier(
-            "./Some Show/Season 2/bfldi_S1120.720p.mkv"))
+            pl.Path("./Some Show/Season 2/bfldi_S1120.720p.mkv")))
         self.assertEqual((99, 29), renamr.get_identifier(
-            "../Some Show/Season 22/bfldi_S9929.720p.mkv"))
+            pl.Path("../Some Show/Season 22/bfldi_S9929.720p.mkv")))
         self.assertEqual((10, 80), renamr.get_identifier(
-            "/media/Some Show/Season 13/asduih_s1080.720p.mkv"))
+            pl.Path("/media/Some Show/Season 13/asduih_s1080.720p.mkv")))
 
     def test_get_identifier_xxxx(self):
         self.assertEqual((1, 1), renamr.get_identifier(
-            "abfldi_0101.720p.mkv"))
+            pl.Path("abfldi_0101.720p.mkv")))
         self.assertEqual((11, 20), renamr.get_identifier(
-            "abfldi_1120.720p.mkv"))
+            pl.Path("abfldi_1120.720p.mkv")))
         self.assertEqual((99, 29), renamr.get_identifier(
-            "abfldi_9929.720p.mkv"))
+            pl.Path("abfldi_9929.720p.mkv")))
         self.assertEqual((10, 80), renamr.get_identifier(
-            "asduih_1080.720p.mkv"))
+            pl.Path("asduih_1080.720p.mkv")))
         self.assertEqual((11, 99), renamr.get_identifier(
-            "assdf_1199_1080p.mkv"))
+            pl.Path("assdf_1199_1080p.mkv")))
         self.assertEqual((9, 14), renamr.get_identifier(
-            "asiud_1080p.0914.mkv"))
+            pl.Path("asiud_1080p.0914.mkv")))
         self.assertEqual((1, 1), renamr.get_identifier(
-            "/media/Some Show/Season 01/abfldi_0101.720p.mkv"))
+            pl.Path("/media/Some Show/Season 01/abfldi_0101.720p.mkv")))
         self.assertEqual((11, 20), renamr.get_identifier(
-            "./abfldi_1120.720p.mkv"))
+            pl.Path("./abfldi_1120.720p.mkv")))
         self.assertEqual((99, 29), renamr.get_identifier(
-            "../abfldi_9929.720p.mkv"))
+            pl.Path("../abfldi_9929.720p.mkv")))
         self.assertEqual((10, 80), renamr.get_identifier(
-            "../Some Show/asduih_1080.720p.mkv"))
+            pl.Path("../Some Show/asduih_1080.720p.mkv")))
         self.assertEqual((11, 99), renamr.get_identifier(
-            "../Some Show/Season 1/assdf_1199_1080p.mkv"))
+            pl.Path("../Some Show/Season 1/assdf_1199_1080p.mkv")))
         self.assertEqual((9, 14), renamr.get_identifier(
-            "../Some Show/Season 03/asiud_1080p.0914.mkv"))
+            pl.Path("../Some Show/Season 03/asiud_1080p.0914.mkv")))
 
     def test_get_identifier_xxx(self):
         self.assertEqual((1, 1), renamr.get_identifier(
-            "abfldi_101.720p.mkv"))
+            pl.Path("abfldi_101.720p.mkv")))
         self.assertEqual((1, 20), renamr.get_identifier(
-            "abfldi_120.720p.mkv"))
+            pl.Path("abfldi_120.720p.mkv")))
         self.assertEqual((9, 29), renamr.get_identifier(
-            "abfldi_929.720p.mkv"))
+            pl.Path("abfldi_929.720p.mkv")))
         self.assertEqual((9, 14), renamr.get_identifier(
-            "asiud_720p.914.mkv"))
+            pl.Path("asiud_720p.914.mkv")))
         self.assertEqual((1, 1), renamr.get_identifier(
-            "./abfldi_101.720p.mkv"))
+            pl.Path("./abfldi_101.720p.mkv")))
         self.assertEqual((1, 20), renamr.get_identifier(
-            "../abfldi_120.720p.mkv"))
+            pl.Path("../abfldi_120.720p.mkv")))
         self.assertEqual((9, 29), renamr.get_identifier(
-            "/media/Some Show/Season 199/abfldi_929.720p.mkv"))
+            pl.Path("/media/Some Show/Season 199/abfldi_929.720p.mkv")))
         self.assertEqual((9, 14), renamr.get_identifier(
-            "../../media/Some Show/Season 21/asiud_720p.914.mkv"))
+            pl.Path("../../media/Some Show/Season 21/asiud_720p.914.mkv")))
 
     def test_get_identifier_Error(self):
         with self.assertRaises(renamr.NoRegexMatchException):
-            renamr.get_identifier("")
+            renamr.get_identifier(pl.Path(""))
         with self.assertRaises(renamr.NoRegexMatchException):
-            renamr.get_identifier("asiudiv.720p.mkv")
+            renamr.get_identifier(pl.Path("asiudiv.720p.mkv"))
         with self.assertRaises(renamr.NoRegexMatchException):
-            renamr.get_identifier("./siudfuc.1080p.mkv")
+            renamr.get_identifier(pl.Path("./siudfuc.1080p.mkv"))
         with self.assertRaises(renamr.NoRegexMatchException):
             renamr.get_identifier(
-                "/media/Some Show(2005)/Season 01/ixc.720p.1080p.mkv")
+                pl.Path("/media/Some Show(2005)/Season 01/ixc.720p.1080p.mkv"))
 
     def test_get_episode_name(self):
         def data(series_name):

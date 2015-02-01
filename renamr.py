@@ -55,7 +55,15 @@ class NoRegexMatchException(ValueError):
 
 
 def get_series_name(file_path):
-    """Gets the seriesname from the directory structure"""
+    """Gets the seriesname from the directory structure
+
+    Args:
+        file_path (pathlib.Path): Path to the file
+
+    Returns:
+        (string): Name of the series
+
+    """
     series_name = file_path.parts[-3]
     return series_name
 
@@ -65,6 +73,9 @@ def get_identifier(file_path):
 
     Args:
         filename (pathlib.Path): Absolute path to file
+
+    Returns:
+        (EpisodeIdent): Identifing the episode
 
     """
     for regex in regexes:
@@ -77,7 +88,15 @@ def get_identifier(file_path):
 
 
 def build_identifier(identifier):
-    """Builds the episode identifier, consisting of season and episodenumber"""
+    """Builds the episode identifier, consisting of season and episodenumber
+
+    Args:
+        identifier (EpisodeIdent): Identifier of a episode
+
+    Returns:
+        (string): Identifing the episode
+
+    """
     if identifier.season < 0 or identifier.episode < 0:
         raise ValueError("Season and Episode can't be negative")
     ret = 'S{ident.season:>02}E{ident.episode:>02}'.format(ident=identifier)
@@ -86,9 +105,17 @@ def build_identifier(identifier):
 
 def get_csv(series_name):
     """Return a String containing the complete CSV of a show
+
        Before making any requests to epguides the function checks if we already
        downloaded the csv. If yes it returns it from cache. If not it request
        the showpage parses it for the csv link gets that and returns it
+
+    Args:
+        series_name (string): Name of the series
+
+    Returns:
+        (string): csv of the series
+
     """
     url = 'http://epguides.com/common/exportToCSV.asp'
     host = 'epguides.com'
@@ -128,7 +155,18 @@ def get_csv(series_name):
 
 
 def get_episode_name(ident, series_name, data_provider=get_csv):
-    """Gets the Episode name from epguides"""
+    """Gets the Episode name from epguides
+
+    Args:
+        ident (EpisodeIdent): Episode identifier
+        series_name (string): Name of the series
+        data_provider (function): Function that takes the episode name and
+            returns a string containing csv of the series
+
+    Returns:
+        (string): Episode name or empty string
+
+    """
     try:
         reader = csv.reader(
             data_provider(series_name),
@@ -145,13 +183,34 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
 
 
 def get_partial_path(path):
-    """Shortens the path for output. Returns only last two folderlevels
-    and the filename"""
+    """Shortens the path for output.
+
+    Returns only last two folderlevels
+    and the filename
+
+    Args:
+        path (pathlib.Path): Path to a file
+
+    Returns:
+        (list): containing the last three path elements
+
+    """
     return path.parts[-3:]
 
 
 def make_new_path(series_name, ident, ep_name, old_path):
-    """Generate new path for file"""
+    """Generate new path for file
+
+    Args:
+        series_name (string): Name of the series
+        ident (EpisodeIdent): Identifier of the episode
+        ep_name (string): Name of the episode
+        old_path (pathlib.Path): Path to the file
+
+    Returns:
+        (pathlib.Path): new file path
+
+    """
     if None in (series_name, ident, old_path):
         raise ValueError("Parameters can't be 'None'")
     new_name = "{series} {ident_} - {epname}{ext}".format(
@@ -163,7 +222,13 @@ def make_new_path(series_name, ident, ep_name, old_path):
 
 
 def rename_file(old_path, new_path):
-    """Rename file if it does not already exist"""
+    """Rename file if it does not already exist
+
+    Args:
+        old_path (pathlib.Path): Path to the file to be renamed
+        new_path (pathlib.Path): Path the file should be renamed to
+
+    """
     if new_path.exists():
         logger.warning("File {new} already exists".format(
             new=new_path))
@@ -174,14 +239,31 @@ def rename_file(old_path, new_path):
         new=get_partial_path(new_path)))
 
 
-def read_files_from_args(file_list):
-    files = filter(pl.Path.exists, file_list)
-    absFiles = map(pl.Path.resolve, files)
-    return absFiles
+def read_files_from_args(path_list):
+    """Read files from list and check existens
+
+    Args:
+        file_list (list): List of files to check and make absolute
+
+    Returns:
+        list: of existing, absolute paths
+    """
+    files = filter(pl.Path.exists, path_list)
+    abs_paths = map(pl.Path.resolve, files)
+    return abs_paths
 
 
-def read_files_from_file(path):
-    file_list = [pl.Path(line.replace("\n", "")) for line in path]
+def read_files_from_file(file):
+    """Read files from the provided file
+
+    Args:
+        file (file object): Every line in this file is treated as one file to
+            be renamed. This is usually sys.stdin
+
+    Returns:
+        list: of existing, absolute paths
+    """
+    file_list = [pl.Path(line.replace("\n", "")) for line in file]
     return read_files_from_args(file_list)
 
 

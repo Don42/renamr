@@ -239,7 +239,7 @@ def rename_file(old_path, new_path):
         new=get_partial_path(new_path)))
 
 
-def read_files_from_args(path_list):
+def create_file_list(source):
     """Read files from list and check existens
 
     Args:
@@ -248,23 +248,10 @@ def read_files_from_args(path_list):
     Returns:
         list: of existing, absolute paths
     """
+    path_list = [pl.Path(x.replace('\n', '')) for x in source]
     files = filter(pl.Path.exists, path_list)
     abs_paths = map(pl.Path.resolve, files)
     return abs_paths
-
-
-def read_files_from_file(file):
-    """Read files from the provided file
-
-    Args:
-        file (file object): Every line in this file is treated as one file to
-            be renamed. This is usually sys.stdin
-
-    Returns:
-        list: of existing, absolute paths
-    """
-    file_list = [pl.Path(line.replace("\n", "")) for line in file]
-    return read_files_from_args(file_list)
 
 
 def main():
@@ -274,13 +261,13 @@ def main():
     if args['--verbose']:
         logger.setLevel(logging.DEBUG)
 
-    absFiles = []
+    abs_files = []
     if(not args['-']):
-        absFiles = read_files_from_args([pl.Path(x) for x in args['<file>']])
+        abs_files = create_file_list(args['<file>'])
     else:
-        absFiles = read_files_from_file(sys.stdin)
+        abs_files = create_file_list(sys.stdin)
 
-    for file_path in absFiles:
+    for file_path in abs_files:
         logger.debug("Operating on File {filename}".format(filename=file_path))
         series_name = ''
         if(not args['--name']):

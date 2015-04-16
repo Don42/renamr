@@ -37,6 +37,7 @@ import re
 import requests
 import sys
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('renamr')
 logger.setLevel(logging.INFO)
 
@@ -268,7 +269,7 @@ def main():
         abs_files = create_file_list(sys.stdin)
 
     for file_path in abs_files:
-        logger.debug("Operating on File {filename}".format(filename=file_path))
+        logger.info("Operating on File {filename}".format(filename=file_path))
         series_name = ''
         if(not args['--name']):
             series_name = get_series_name(file_path)
@@ -290,7 +291,7 @@ def main():
                                  ident,
                                  ep_name,
                                  file_path)
-        logger.debug("New path: {new}".format(new=new_path))
+        logger.info("New path: {new}".format(new=new_path))
         if not args.get('--dry-run', False):
             rename_file(file_path, new_path)
     else:

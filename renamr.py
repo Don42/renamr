@@ -146,16 +146,24 @@ def get_csv(series_name):
                 raise
             response.encoding = 'utf-8'
             soup = bs4.BeautifulSoup(response.text)
-            cache[short_name] = soup.find('pre').contents[0].strip()
+            raw_csv = io.StringIO(soup.find('pre').contents[0].strip())
+            reader = csv.reader(raw_csv,
+                                delimiter=',',
+                                quotechar='"')
+            series_data = collections.defaultdict(dict)
+            for line in reader:
+                if not line[0] == 'number':
+                    series_data[int(1)][int(line[2])] = line[5]
+            cache[short_name] = series_data
         except requests.exceptions.RequestException as e:
             logger.error("Unknown error: {}".format(e))
             raise
 
-    csvText = io.StringIO(cache[short_name])
+    csvText = cache[short_name]
     return csvText
 
 
-def get_episode_name(ident, series_name, data_provider=get_csv):
+def get_episode_name(ident, series_name, series_data):
     """Gets the Episode name from epguides
 
     Args:
@@ -169,15 +177,7 @@ def get_episode_name(ident, series_name, data_provider=get_csv):
 
     """
     try:
-        reader = csv.reader(
-            data_provider(series_name),
-            delimiter=',',
-            quotechar='"')
-        for line in reader:
-            if not line[0] == 'number':
-                if int(line[1]) == ident.season and (int(line[2]) ==
-                                                     ident.episode):
-                    return line[5]
+        return series_data[ident.season][ident.episode]
     except IndexError:
         pass
     return ""
@@ -285,7 +285,8 @@ def main():
                     file_=file_path))
             continue
 
-        ep_name = get_episode_name(ident, series_name)
+        series_data = get_csv(series_name)
+        ep_name = get_episode_name(ident, series_name, series_data)
 
         new_path = make_new_path(series_name,
                                  ident,

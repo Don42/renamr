@@ -137,7 +137,6 @@ class test_renamr(unittest.TestCase):
         data = {5: {16: "Felina"}}
         ret = renamr.get_episode_name(
             renamr.EpisodeIdent(5, 16),
-            "Breaking Bad",
             data)
         self.assertEqual("Felina", ret)
 

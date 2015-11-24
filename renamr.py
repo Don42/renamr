@@ -27,15 +27,17 @@ Options:
 """
 
 import collections
-import bs4
-import csv
 import docopt as dopt
-import io
+import json
 import logging
 import pathlib as pl
 import re
 import requests
 import sys
+
+ENCODING = 'utf-8'
+
+SINGLESEARCH_SHOWS_URL = 'http://api.tvmaze.com/singlesearch/shows'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('renamr')
@@ -73,7 +75,7 @@ def get_identifier(file_path):
     """Tries multiple regexes to get season and episode number
 
     Args:
-        filename (pathlib.Path): Absolute path to file
+        file_path (pathlib.Path): Absolute path to file
 
     Returns:
         (EpisodeIdent): Identifing the episode
@@ -104,80 +106,40 @@ def build_identifier(identifier):
     return ret
 
 
-def get_csv(series_name):
-    """Return a String containing the complete CSV of a show
+def download_series_page(short_name):
+    session = requests.Session()
+    payload = {'q': short_name, 'embed': 'episodes'}
+    response = session.get(SINGLESEARCH_SHOWS_URL, params=payload)
+    if response.status_code == 200:
+        response.encoding = ENCODING
+        return response.text
+    elif response.status_code == 404:
+        raise NameError  # TODO Create proper exception
+    else:
+        logger.error("The server couldn't fulfill the request. Error code: {code}".format(response.status_code))
+        raise requests.RequestException
 
-       Before making any requests to epguides the function checks if we already
-       downloaded the csv. If yes it returns it from cache. If not it request
-       the showpage parses it for the csv link gets that and returns it
 
-    Args:
-        series_name (string): Name of the series
+def extract_episode_name_mapping(series_page):
+    content = json.loads(series_page)
+    episodes = content['_embedded']['episodes']
+    ident_name_mapping = dict()
+    for episode in episodes:
+        ident_name_mapping[EpisodeIdent(int(episode['season']), int(episode['number']))] = episode['name']
+    return ident_name_mapping
 
-    Returns:
-        (string): csv of the series
 
-    """
-    url = 'http://epguides.com/common/exportToCSV.asp'
-    host = 'epguides.com'
-    short_name = series_name.replace(' ', '')
+def get_series_data(series_name):
+    short_name = series_name.replace(' ', '-')
     if short_name not in cache:
-        try:
-            session = requests.Session()
-            response = session.get('http://epguides.com/{name}/'.format(
-                name=short_name))
-            if response.status_code != 200:
-                logger.error(("The server couldn't fulfill the request."
-                              " Error code: {code}").format(
-                                  response.status_code))
-                raise
-            response.encoding = 'utf-8'
-            soup = bs4.BeautifulSoup(response.text)
-            soup_res = soup.find('a', href=re.compile(url))
-            if soup_res is None:
-                raise Exception("""Link not found in Site: {host_}/{name}/
-                                \nTry specifing the name with --name.
-                                """.format(host_=host, name=short_name))
-            response = session.get(soup_res.get('href'))
-            if response.status_code != 200:
-                logger.error(("The server couldn't fulfill the request."
-                              " Error code: {code}").format(
-                                  response.status_code))
-                raise
-            response.encoding = 'utf-8'
-            soup = bs4.BeautifulSoup(response.text)
-            cache[short_name] = soup.find('pre').contents[0].strip()
-        except requests.exceptions.RequestException as e:
-            logger.error("Unknown error: {}".format(e))
-            raise
-
-    csvText = io.StringIO(cache[short_name])
-    return csvText
+        page = download_series_page(short_name)
+        cache[short_name] = extract_episode_name_mapping(page)
+    return cache[short_name]
 
 
-def get_episode_name(ident, series_name, data_provider=get_csv):
-    """Gets the Episode name from epguides
-
-    Args:
-        ident (EpisodeIdent): Episode identifier
-        series_name (string): Name of the series
-        data_provider (function): Function that takes the episode name and
-            returns a string containing csv of the series
-
-    Returns:
-        (string): Episode name or empty string
-
-    """
+def get_episode_name(ident, series_data):
     try:
-        reader = csv.reader(
-            data_provider(series_name),
-            delimiter=',',
-            quotechar='"')
-        for line in reader:
-            if not line[0] == 'number':
-                if int(line[1]) == ident.season and (int(line[2]) ==
-                                                     ident.episode):
-                    return line[5]
+        return series_data[ident]
     except IndexError:
         pass
     return ""
@@ -241,10 +203,10 @@ def rename_file(old_path, new_path):
 
 
 def create_file_list(source):
-    """Read files from list and check existens
+    """Read files from list and check existence
 
     Args:
-        file_list (list): List of files to check and make absolute
+        source (list): List of files to check and make absolute
 
     Returns:
         list: of existing, absolute paths
@@ -262,35 +224,24 @@ def main():
     if args['--verbose']:
         logger.setLevel(logging.DEBUG)
 
-    abs_files = []
-    if(not args['-']):
-        abs_files = create_file_list(args['<file>'])
-    else:
-        abs_files = create_file_list(sys.stdin)
+    abs_files = create_file_list(sys.stdin) if args['-'] else create_file_list(args['<file>'])
 
     for file_path in abs_files:
         logger.info("Operating on File {filename}".format(filename=file_path))
-        series_name = ''
-        if(not args['--name']):
-            series_name = get_series_name(file_path)
-        else:
-            series_name = args['--name']
+
+        series_name = args['--name'] or get_series_name(file_path)
         logger.debug("Using Seriesname {name}".format(name=series_name))
 
         try:
             ident = get_identifier(file_path)
         except NoRegexMatchException:
-            logger.error(
-                "Error: No regex match on file {file_}. Skipping".format(
-                    file_=file_path))
+            logger.error("Error: No regex match on file {file_}. Skipping".format(file_=file_path))
             continue
 
-        ep_name = get_episode_name(ident, series_name)
+        series_data = get_series_data(series_name)
+        ep_name = get_episode_name(ident, series_data)
 
-        new_path = make_new_path(series_name,
-                                 ident,
-                                 ep_name,
-                                 file_path)
+        new_path = make_new_path(series_name, ident, ep_name, file_path)
         logger.info("New path: {new}".format(new=new_path))
         if not args.get('--dry-run', False):
             rename_file(file_path, new_path)

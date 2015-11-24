@@ -16,7 +16,6 @@ identical to the naemof the series on epguides. Spaces in the foldername are
 ignored  when quering epguides.
 
 Usage:
-    renamr.py test [options]
     renamr.py [options] -
     renamr.py [options] <file>...
 
@@ -76,7 +75,7 @@ def get_identifier(file_path):
     """Tries multiple regexes to get season and episode number
 
     Args:
-        filename (pathlib.Path): Absolute path to file
+        file_path (pathlib.Path): Absolute path to file
 
     Returns:
         (EpisodeIdent): Identifing the episode
@@ -124,11 +123,10 @@ def download_series_page(short_name):
 def extract_episode_name_mapping(series_page):
     content = json.loads(series_page)
     episodes = content['_embedded']['episodes']
-    ep_name_mapping = collections.defaultdict(dict)
+    ident_name_mapping = dict()
     for episode in episodes:
-        ep_name_mapping[int(episode['season'])][int(episode['number'])] = episode['name']
-
-    return ep_name_mapping
+        ident_name_mapping[EpisodeIdent(int(episode['season']), int(episode['number']))] = episode['name']
+    return ident_name_mapping
 
 
 def get_series_data(series_name):
@@ -141,7 +139,7 @@ def get_series_data(series_name):
 
 def get_episode_name(ident, series_data):
     try:
-        return series_data[ident.season][ident.episode]
+        return series_data[ident]
     except IndexError:
         pass
     return ""
@@ -205,10 +203,10 @@ def rename_file(old_path, new_path):
 
 
 def create_file_list(source):
-    """Read files from list and check existens
+    """Read files from list and check existence
 
     Args:
-        file_list (list): List of files to check and make absolute
+        source (list): List of files to check and make absolute
 
     Returns:
         list: of existing, absolute paths
@@ -221,43 +219,29 @@ def create_file_list(source):
 
 def main():
     args = dopt.docopt(__doc__)
-    if args['test']:
-        print(get_series_data(args.get('--name')))
     if args['--quiet']:
         logger.setLevel(logging.ERROR)
     if args['--verbose']:
         logger.setLevel(logging.DEBUG)
 
-    abs_files = []
-    if(not args['-']):
-        abs_files = create_file_list(args['<file>'])
-    else:
-        abs_files = create_file_list(sys.stdin)
+    abs_files = create_file_list(sys.stdin) if args['-'] else create_file_list(args['<file>'])
 
     for file_path in abs_files:
         logger.info("Operating on File {filename}".format(filename=file_path))
-        series_name = ''
-        if(not args['--name']):
-            series_name = get_series_name(file_path)
-        else:
-            series_name = args['--name']
+
+        series_name = args['--name'] or get_series_name(file_path)
         logger.debug("Using Seriesname {name}".format(name=series_name))
 
         try:
             ident = get_identifier(file_path)
         except NoRegexMatchException:
-            logger.error(
-                "Error: No regex match on file {file_}. Skipping".format(
-                    file_=file_path))
+            logger.error("Error: No regex match on file {file_}. Skipping".format(file_=file_path))
             continue
 
         series_data = get_series_data(series_name)
-        ep_name = get_episode_name(ident, series_name, series_data)
+        ep_name = get_episode_name(ident, series_data)
 
-        new_path = make_new_path(series_name,
-                                 ident,
-                                 ep_name,
-                                 file_path)
+        new_path = make_new_path(series_name, ident, ep_name, file_path)
         logger.info("New path: {new}".format(new=new_path))
         if not args.get('--dry-run', False):
             rename_file(file_path, new_path)

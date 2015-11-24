@@ -134,7 +134,7 @@ class test_renamr(unittest.TestCase):
                 pl.Path("/media/Some Show(2005)/Season 01/ixc.720p.1080p.mkv"))
 
     def test_get_episode_name(self):
-        data = {5: {16: "Felina"}}
+        data = {renamr.EpisodeIdent(5, 16): "Felina"}
         ret = renamr.get_episode_name(
             renamr.EpisodeIdent(5, 16),
             data)

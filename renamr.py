@@ -39,9 +39,15 @@ ENCODING = 'utf-8'
 
 SINGLESEARCH_SHOWS_URL = 'http://api.tvmaze.com/singlesearch/shows'
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('renamr')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+ch = logging.StreamHandler()
+ch.setFormatter(formatter)
+ch.setLevel(logging.DEBUG)
+
 logger.setLevel(logging.INFO)
+logger.addHandler(ch)
 
 regexes = ['[S|s](\d{2})[E|e|-|_](\d{2})[^\d]',
            '[S|s](\d{2})(\d{2})[^p]',

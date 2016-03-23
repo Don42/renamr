@@ -3,6 +3,14 @@ import pytest
 import renamr.series_database
 
 
+def test_get_episode_name():
+    data = {(5, 16): "Felina"}
+    ret = renamr.series_database.get_episode_name(
+        renamr.series_database.EpisodeIdentifier(5, 16),
+        data)
+    assert "Felina" == ret
+
+
 def test_build_identifier():
     assert "S01E01" == renamr.series_database.EpisodeIdentifier(1, 1).__str__()
     assert "S10E20" == renamr.series_database.EpisodeIdentifier(10, 20).__str__()

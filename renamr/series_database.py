@@ -1,4 +1,3 @@
-import collections
 import json
 import logging
 import requests
@@ -9,8 +8,6 @@ SINGLESEARCH_SHOWS_URL = 'http://api.tvmaze.com/singlesearch/shows'
 
 logger = logging.getLogger('renamr')
 cache = {}
-
-#EpisodeIdentifier = collections.namedtuple('EpisodeIdentifier', ['season', 'episode'])
 
 
 class EpisodeIdentifier:

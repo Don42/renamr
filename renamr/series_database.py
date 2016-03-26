@@ -24,7 +24,7 @@ class EpisodeIdentifier:
         return "S{season:>02}E{episode:>02}".format(season=self.season, episode=self.episode)
 
     def identifier(self):
-        return self.season, self.episode
+        return "S{season:>02}E{episode:>02}".format(season=self.season, episode=self.episode)
 
 
 class SeriesDatabase:
@@ -89,7 +89,8 @@ class SeriesDatabase:
         episodes = content['_embedded']['episodes']
         ident_name_mapping = dict()
         for episode in episodes:
-            ident_name_mapping[(int(episode['season']), int(episode['number']))] = episode['name']
+            identifier = EpisodeIdentifier(int(episode['season']), int(episode['number'])).identifier()
+            ident_name_mapping[identifier] = episode['name']
         return ident_name_mapping
 
 

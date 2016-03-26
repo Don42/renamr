@@ -1,5 +1,7 @@
 import json
 import logging
+import pathlib
+
 import requests
 
 ENCODING = 'utf-8'
@@ -44,17 +46,34 @@ class SeriesDatabase:
         series_data = self._get_series_data(series_name)
         try:
             return series_data[ident.identifier()]
-        except IndexError:
+        except KeyError:
+            pass
+
+        series_data = self._get_series_data(series_name, refresh=True)
+        try:
+            return series_data[ident.identifier()]
+        except KeyError:
             return ""
 
-    def _get_series_data(self, series_name):
+    def store_series_data(self, filename):
+        file = pathlib.Path(filename)
+        with file.open('w') as f:
+            json.dump(self._cache, f)
+
+    def load_series_data(self, filename):
+        file = pathlib.Path(filename)
+        with file.open('r') as f:
+            self._cache = json.load(f)
+
+    def _get_series_data(self, series_name, refresh=False):
         """
 
         :param series_name: Name of the series
+        :param refresh: Refresh the cache for series
         :return: mapping for the series
         """
         short_name = series_name.replace(' ', '-')
-        if short_name not in self._cache:
+        if short_name not in self._cache or refresh:
             page = self._download_series_page(short_name)
             self._cache[short_name] = self._extract_episode_name_mapping(page)
         return self._cache[short_name]

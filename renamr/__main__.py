@@ -34,7 +34,7 @@ import docopt
 
 from renamr.file_handling import rename_file, make_new_path
 from renamr.parser import NoRegexMatchException, get_series_name, get_identifier
-from renamr.series_database import get_series_data, get_episode_name
+from renamr.series_database import SeriesDatabase
 
 logger = logging.getLogger('renamr')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -71,6 +71,8 @@ def main():
 
     abs_files = create_file_list(sys.stdin) if args['-'] else create_file_list(args['<file>'])
 
+    db = SeriesDatabase()
+
     for file_path in abs_files:
         logger.info("Operating on File {filename}".format(filename=file_path))
 
@@ -83,8 +85,7 @@ def main():
             logger.error("Error: No regex match on file {file_}. Skipping".format(file_=file_path))
             continue
 
-        series_data = get_series_data(series_name)
-        ep_name = get_episode_name(ident, series_data)
+        ep_name = db.get_episode_name(series_name, ident)
 
         new_path = make_new_path(series_name, ident, ep_name, file_path)
         logger.info("New path: {new}".format(new=new_path))

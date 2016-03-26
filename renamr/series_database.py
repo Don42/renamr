@@ -27,6 +27,72 @@ class EpisodeIdentifier:
         return self.season, self.episode
 
 
+class SeriesDatabase:
+    """This class implements a cached interface to the api of tvmaze.com
+
+    """
+    def __init__(self):
+        self._cache = {}
+
+    def get_episode_name(self, series_name, ident):
+        """
+
+        :param series_name: Name of the series
+        :param ident: Identifier for the episode
+        :return: episode name
+        """
+        series_data = self._get_series_data(series_name)
+        try:
+            return series_data[ident.identifier()]
+        except IndexError:
+            return ""
+
+    def _get_series_data(self, series_name):
+        """
+
+        :param series_name: Name of the series
+        :return: mapping for the series
+        """
+        short_name = series_name.replace(' ', '-')
+        if short_name not in self._cache:
+            page = self._download_series_page(short_name)
+            self._cache[short_name] = self._extract_episode_name_mapping(page)
+        return self._cache[short_name]
+
+    @staticmethod
+    def _download_series_page(short_name: str) -> str:
+        """
+
+        :param short_name: Short name of a series
+        :return: Downloaded page
+        """
+        session = requests.Session()
+        payload = {'q': short_name, 'embed': 'episodes'}
+        response = session.get(SINGLESEARCH_SHOWS_URL, params=payload)
+        if response.status_code == 200:
+            response.encoding = ENCODING
+            return response.text
+        elif response.status_code == 404:
+            raise NameError  # TODO Create proper exception
+        else:
+            logger.error("The server couldn't fulfill the request. Error code: {code}".format(response.status_code))
+            raise requests.RequestException
+
+    @staticmethod
+    def _extract_episode_name_mapping(series_page):
+        """
+
+        :param series_page: Page to parse
+        :return: mapping from season/episode to name
+        """
+        content = json.loads(series_page)
+        episodes = content['_embedded']['episodes']
+        ident_name_mapping = dict()
+        for episode in episodes:
+            ident_name_mapping[(int(episode['season']), int(episode['number']))] = episode['name']
+        return ident_name_mapping
+
+
 def download_series_page(short_name: str) -> str:
     """
 

@@ -30,7 +30,7 @@ import logging
 import pathlib as pl
 import sys
 
-import docopt as dopt
+import docopt
 
 from renamr.file_handling import rename_file, make_new_path
 from renamr.parser import NoRegexMatchException, get_series_name, get_identifier
@@ -63,7 +63,7 @@ def create_file_list(source: list) -> list:
 
 
 def main():
-    args = dopt.docopt(__doc__)
+    args = docopt.docopt(__doc__)
     if args['--quiet']:
         logger.setLevel(logging.ERROR)
     if args['--verbose']:

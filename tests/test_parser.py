@@ -4,6 +4,7 @@ import unittest
 from ddt import data, unpack, ddt, file_data
 
 import renamr.parser
+import renamr.series_database
 
 
 no_regex_data = [
@@ -20,7 +21,8 @@ class RegexTest(unittest.TestCase):
     @unpack
     def test_get_identifier(self, pair):
         name, result = pair
-        assert tuple(result) == renamr.parser.get_identifier(pathlib.Path(name)).identifier()
+        identifier = renamr.series_database.EpisodeIdentifier(*result)
+        assert identifier.identifier() == renamr.parser.get_identifier(pathlib.Path(name)).identifier()
 
     @data(*no_regex_data)
     def test_get_identifier_Error(self, name):
@@ -34,3 +36,4 @@ def test_get_series_name_abs_path():
 
 def test_get_series_name_rel_path():
     assert "Some Show" == renamr.parser.get_series_name(pathlib.Path("Some Show/Season 1/blbub"))
+

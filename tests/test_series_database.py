@@ -1,6 +1,5 @@
-import unittest
-
 import pytest
+import unittest
 
 import renamr.series_database
 
@@ -9,11 +8,11 @@ class SeriesDatabaseTest(unittest.TestCase):
 
     def test_get_episode_name(self):
         db = renamr.series_database.SeriesDatabase()
-        db._cache['TestSeries'] = {(5, 16): "Felina", (5, 15): "Granite State"}
+        db._cache['TestSeries'] = {'S05E16': "Felina", 'S05E15': "Granite State"}
         identifier1 = renamr.series_database.EpisodeIdentifier(5, 16)
-        db.get_episode_name('TestSeries', identifier1)
+        self.assertEqual(db.get_episode_name('TestSeries', identifier1), "Felina")
         identifier2 = renamr.series_database.EpisodeIdentifier(5, 15)
-        db.get_episode_name('TestSeries', identifier2)
+        self.assertEqual(db.get_episode_name('TestSeries', identifier2), "Granite State")
 
     def test_get_episode_name_cache_miss(self):
         class CacheMiss(Exception):
@@ -25,12 +24,12 @@ class SeriesDatabaseTest(unittest.TestCase):
         db = renamr.series_database.SeriesDatabase()
         db._download_series_page = cache_miss
         identifier = renamr.series_database.EpisodeIdentifier(1, 1)
-        with pytest.raises(CacheMiss):
+        with self.assertRaises(CacheMiss):
             db.get_episode_name('TestSeries', identifier)
 
 
 def test_get_episode_name():
-    data = {(5, 16): "Felina"}
+    data = {'S05E16': "Felina"}
     ret = renamr.series_database.get_episode_name(
         renamr.series_database.EpisodeIdentifier(5, 16),
         data)

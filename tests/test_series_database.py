@@ -1,3 +1,4 @@
+import pathlib
 import pytest
 import unittest
 
@@ -13,6 +14,19 @@ class SeriesDatabaseTest(unittest.TestCase):
         self.assertEqual(db.get_episode_name('TestSeries', identifier1), "Felina")
         identifier2 = renamr.series_database.EpisodeIdentifier(5, 15)
         self.assertEqual(db.get_episode_name('TestSeries', identifier2), "Granite State")
+
+    def test_cache_restore(self):
+        cache_file = '/tmp/cache.json'
+        db = renamr.series_database.SeriesDatabase(cache_file)
+        db._cache['TestSeries'] = {'S05E16': "Felina", 'S05E15': "Granite State"}
+        del db
+        db = renamr.series_database.SeriesDatabase(cache_file)
+        identifier1 = renamr.series_database.EpisodeIdentifier(5, 16)
+        self.assertEqual(db.get_episode_name('TestSeries', identifier1), "Felina")
+        identifier2 = renamr.series_database.EpisodeIdentifier(5, 15)
+        self.assertEqual(db.get_episode_name('TestSeries', identifier2), "Granite State")
+        del db
+        pathlib.Path(cache_file).unlink()
 
     def test_get_episode_name_cache_miss(self):
         class CacheMiss(Exception):

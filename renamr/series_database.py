@@ -33,8 +33,15 @@ class SeriesDatabase:
     """This class implements a cached interface to the api of tvmaze.com
 
     """
-    def __init__(self):
+    def __init__(self, cache_file_name=None):
         self._cache = {}
+        self.cache_file_name = cache_file_name
+        if self.cache_file_name is not None:
+            self.load_series_data(self.cache_file_name)
+
+    def __del__(self):
+        if self.cache_file_name is not None:
+            self.store_series_data(self.cache_file_name)
 
     def get_episode_name(self, series_name, ident):
         """
@@ -62,8 +69,9 @@ class SeriesDatabase:
 
     def load_series_data(self, filename):
         file = pathlib.Path(filename)
-        with file.open('r') as f:
-            self._cache = json.load(f)
+        if file.exists():
+            with file.open('r') as f:
+                self._cache = json.load(f)
 
     def _get_series_data(self, series_name, refresh=False):
         """

@@ -72,9 +72,7 @@ def main():
 
     abs_files = create_file_list(sys.stdin) if args['-'] else create_file_list(args['<file>'])
 
-    db = SeriesDatabase()
-    if args.get('--cache', False):
-        db.load_series_data(args['--cache'])
+    db = SeriesDatabase(args.get('--cache', None))
 
     for file_path in abs_files:
         logger.info("Operating on File {filename}".format(filename=file_path))
@@ -94,8 +92,6 @@ def main():
         logger.info("New path: {new}".format(new=new_path))
         if not args.get('--dry-run', False):
             rename_file(file_path, new_path)
-        if args.get('--cache', False):
-            db.store_series_data(args['--cache'])
     else:
         logger.debug("Done processing all files")
         sys.exit(0)

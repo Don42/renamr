@@ -58,8 +58,15 @@ def create_file_list(source: list) -> list:
     :rtype: list
     """
     path_list = [pl.Path(x.replace('\n', '')) for x in source]
-    files = filter(pl.Path.exists, path_list)
-    abs_paths = map(pl.Path.resolve, files)
+    files = [x for x in path_list if x.exists()]
+    pure_files = list()
+    for path in files:
+        if path.is_dir():
+            sub_files = path.glob('*.mkv')
+            pure_files.extend(sub_files)
+        else:
+            pure_files.append(path)
+    abs_paths = (x.resolve() for x in pure_files)
     return abs_paths
 
 

@@ -3,10 +3,10 @@ import re
 
 from renamr.series_database import EpisodeIdentifier
 
-regexes = ['[S|s](\d{2})[E|e|-|_](\d{2})[^\d]',
-           '[S|s](\d{2})(\d{2})[^p]',
-           '(\d{2})(\d{2})[^p]',
-           '(\d{1})(\d{2})[^p^\d]']
+regexes = ['[S|s](?P<series>\d{2})[E|e|-|_](?P<episode>\d{2})[^\d]',
+           '[S|s](?P<series>\d{2})(?P<episode>\d{2})[^p]',
+           '(?P<series>\d{2})(?P<episode>\d{2})[^p]',
+           '(?P<series>\d{1})(?P<episode>\d{2})[^p^\d]']
 
 
 class NoRegexMatchException(ValueError):
@@ -36,8 +36,8 @@ def get_identifier(file_path: pl.Path) -> EpisodeIdentifier:
     for regex in regexes:
         match = re.search(regex, file_path.name)
         if match is not None:
-            ident = EpisodeIdentifier(int(match.groups()[0]),
-                                      int(match.groups()[1]))
+            ident = EpisodeIdentifier(int(match.group('series')),
+                                      int(match.group('episode')))
             return ident
     raise NoRegexMatchException()
 

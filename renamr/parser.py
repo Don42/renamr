@@ -21,7 +21,11 @@ def get_series_name(file_path: pl.Path) -> str:
     :return: Name of the series
     :rtype: str
     """
-    series_name = file_path.parts[-3]
+    parts = file_path.parts
+    if "season" in parts[-2].casefold():
+        series_name = parts[-3]
+    else:
+        series_name = parts[-2]
     return series_name
 
 

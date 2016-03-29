@@ -37,3 +37,7 @@ def test_get_series_name_abs_path():
 def test_get_series_name_rel_path():
     assert "Some Show" == renamr.parser.get_series_name(pathlib.Path("Some Show/Season 1/blbub"))
 
+
+def test_get_series_name_abs_path_single_layer():
+    assert "Some Show" == renamr.parser.get_series_name(pathlib.Path("/storage/videos/series/Some Show/blbub"))
+

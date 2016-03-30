@@ -4,11 +4,11 @@ import pathlib
 
 import requests
 
-ENCODING = 'utf-8'
+logger = logging.getLogger(__name__)
 
+ENCODING = 'utf-8'
 SINGLESEARCH_SHOWS_URL = 'http://api.tvmaze.com/singlesearch/shows'
 
-logger = logging.getLogger('renamr')
 cache = {}
 
 

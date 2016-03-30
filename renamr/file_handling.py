@@ -3,7 +3,7 @@ import pathlib as pl
 
 from renamr.series_database import EpisodeIdentifier
 
-logger = logging.getLogger('renamr')
+logger = logging.getLogger(__name__)
 
 
 def get_partial_path(path: pl.Path) -> list:

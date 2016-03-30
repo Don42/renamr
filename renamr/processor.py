@@ -50,4 +50,6 @@ def process_files(abs_files, series_name=None, dry_run=False, cache_file=None):
         logger.info("New path: {new}".format(new=new_path))
         if not dry_run:
             rename_file(file_path, new_path)
+        else:
+            print("{}|{}".format(file_path, new_path))
 

@@ -10,10 +10,10 @@
 """renamr
 
 Rename TV Series Episodes
-Files have to be sorted into Folders, like "SeriesName/Season/File.ext" only
-the Seriesname is relevant. It is used to query epguides.com, so it should be
-identical to the naemof the series on epguides. Spaces in the foldername are
-ignored  when quering epguides.
+If files are sorted into folders, either like "Seriesname/file.ext" or "SeriesName/Season 01/File.ext",
+the series name is used for the files. If the files are not sorted or the series name can't be recognized
+the name has to be specified on the command line. This limits the script to one series per run.
+The series name is used to query *tvmaze.com*, so it should be identical to the name of the series on that site.
 
 Usage:
     renamr.py [options] -

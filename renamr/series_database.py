@@ -102,7 +102,7 @@ class SeriesDatabase:
         elif response.status_code == 404:
             raise NameError()  # TODO Create proper exception
         else:
-            logger.error("The server couldn't fulfill the request. Error code: {code}".format(code=response.status_code))
+            logger.error("The server couldn't fulfill the request. Error code: %s", response.status_code)
             raise requests.RequestException
 
     @staticmethod
@@ -136,8 +136,8 @@ def download_series_page(short_name: str) -> str:
     elif response.status_code == 404:
         raise NameError  # TODO Create proper exception
     else:
-        logger.error("The server couldn't fulfill the request. Error code: {code}".format(response.status_code))
-        raise requests.RequestException
+        logger.error("The server couldn't fulfill the request. Error code: %s", response.status_code)
+        raise requests.RequestException()
 
 
 def extract_episode_name_mapping(series_page):

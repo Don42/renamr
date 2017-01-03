@@ -6,7 +6,7 @@ from renamr.series_database import EpisodeIdentifier
 logger = logging.getLogger(__name__)
 
 
-def get_partial_path(path: pl.Path) -> list:
+def get_partial_path(path: pl.Path) -> tuple:
     """Shortens the path for output.
 
     Returns only last two folderlevels
@@ -31,13 +31,9 @@ def rename_file(old_path: pl.Path, new_path: pl.Path):
 
     """
     if new_path.exists():
-        logger.warning("File {new} already exists".format(
-            new=new_path))
+        logger.warning("File %s already exists", new_path.name)
     else:
         old_path.rename(new_path)
-    logger.info("\"{old}\"|\"{new}\"".format(
-        old=get_partial_path(old_path),
-        new=get_partial_path(new_path)))
 
 
 def make_new_path(series_name: str, ident: EpisodeIdentifier, ep_name: str, old_path: pl.Path):

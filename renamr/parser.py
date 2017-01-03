@@ -7,6 +7,7 @@ from renamr.series_database import EpisodeIdentifier
 logger = logging.getLogger(__name__)
 
 regexes = ['[S|s](?P<series>\d{2})[E|e|-|_](?P<episode>\d{2})[^\d]',
+           '(?P<series>\d{1,2})x(?P<episode>\d{2})[^\d]',
            '[S|s](?P<series>\d{2})(?P<episode>\d{2})[^p]',
            '(?P<series>\d{2})(?P<episode>\d{2})[^p]',
            '(?P<series>\d{1})(?P<episode>\d{2})[^p^\d]']

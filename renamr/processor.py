@@ -26,7 +26,7 @@ def create_file_list(source: list) -> list:
             pure_files.extend(sub_files)
         else:
             pure_files.append(path)
-    abs_paths = (x.resolve() for x in pure_files)
+    abs_paths = [x.resolve() for x in pure_files]
     return abs_paths
 
 
@@ -41,7 +41,7 @@ def process_files(abs_files, series_name=None, dry_run=False, cache_file=None):
         try:
             ident = get_identifier(file_path)
         except NoRegexMatchException:
-            logger.error("Error: No regex match on file {file_}. Skipping".format(file=file_path))
+            logger.error("Error: No regex match on file {file}. Skipping".format(file=file_path))
             continue
 
         ep_name = db.get_episode_name(series_name, ident)

@@ -100,9 +100,9 @@ class SeriesDatabase:
             response.encoding = ENCODING
             return response.text
         elif response.status_code == 404:
-            raise NameError  # TODO Create proper exception
+            raise NameError()  # TODO Create proper exception
         else:
-            logger.error("The server couldn't fulfill the request. Error code: {code}".format(response.status_code))
+            logger.error("The server couldn't fulfill the request. Error code: {code}".format(code=response.status_code))
             raise requests.RequestException
 
     @staticmethod
@@ -160,7 +160,7 @@ def get_series_data(series_name):
     :param series_name: Name of the series
     :return: mapping for the series
     """
-    short_name = series_name.replace(' ', '-')
+    short_name = series_name.replace(' ', '-').lower()
     if short_name not in cache:
         page = download_series_page(short_name)
         cache[short_name] = extract_episode_name_mapping(page)

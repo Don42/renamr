@@ -33,7 +33,7 @@ def create_file_list(source: list) -> list:
 def process_files(abs_files, series_name=None, dry_run=False, cache_file=None):
     db = SeriesDatabase(cache_file)
     for file_path in abs_files:
-        logger.info("Operating on File {filename}".format(filename=file_path))
+        logger.info("Operating on File {filename}".format(filename=file_path.name))
 
         series_name = series_name or get_series_name(file_path)
         logger.debug("Using Seriesname {name}".format(name=series_name))
@@ -41,13 +41,13 @@ def process_files(abs_files, series_name=None, dry_run=False, cache_file=None):
         try:
             ident = get_identifier(file_path)
         except NoRegexMatchException:
-            logger.error("Error: No regex match on file {file}. Skipping".format(file=file_path))
+            logger.error("Error: No regex match on file {file}. Skipping".format(file=file_path.name))
             continue
 
         ep_name = db.get_episode_name(series_name, ident)
 
         new_path = make_new_path(series_name, ident, ep_name, file_path)
-        logger.info("New path: {new}".format(new=new_path))
+        logger.info("New path: {new}".format(new=new_path.name))
         if not dry_run:
             rename_file(file_path, new_path)
         else:

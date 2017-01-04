@@ -1,6 +1,8 @@
 renamr
 ======
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e9a1a8b1a7474e9d9f583e0b62fb586b)](https://www.codacy.com/app/donmarco42/renamr?utm_source=github.com&utm_medium=referral&utm_content=Don42/renamr&utm_campaign=badger)
+
 Script to rename series episodes
 
 Usage
